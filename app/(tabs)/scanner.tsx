@@ -186,7 +186,7 @@ export default function ScannerScreen() {
                 ? t('checkOutSuccess').replace('{name}', response.data.visitorName)
                 : t('checkInSuccess').replace('{name}', response.data.visitorName);
 
-            if (isVip && !isCheckOut) {
+            if (isVip) {
                 alertMessage += `\n\n⭐ VIP - NO REVISAR VEHÍCULO`;
             }
 

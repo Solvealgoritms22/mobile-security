@@ -1,10 +1,10 @@
-import { View, Text, Pressable, StyleSheet, ScrollView, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { API_URL } from '@/constants/api';
 
@@ -16,7 +16,7 @@ export default function CheckoutScreen() {
     const { token } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
-    const [visitors, setVisitors] = useState([]);
+    const [visitors, setVisitors] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -54,7 +54,12 @@ export default function CheckoutScreen() {
                                     Authorization: `Bearer ${token}`
                                 }
                             });
-                            Alert.alert('Success', t('visitorCheckedOut'));
+                            const isVip = visitors.find(v => v.id === visitId)?.isVip;
+                            let successTitle = t('visitorCheckedOut');
+                            if (isVip) {
+                                successTitle += '\n\n⭐ VIP - NO REVISAR VEHÍCULO';
+                            }
+                            Alert.alert('Success', successTitle);
                             fetchActiveVisitors();
                         } catch (error: any) {
                             Alert.alert('Error', error.response?.data?.message || t('checkoutFailed'));
