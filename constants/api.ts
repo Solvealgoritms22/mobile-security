@@ -6,8 +6,8 @@ import { Platform } from 'react-native';
 // - iOS Simulator: uses localhost
 // - Production: should be replaced with actual API URL via environment variable
 export const API_URL = Platform.select({
-    web: 'http://localhost:3000',
-    android: 'http://10.0.2.2:3000',
-    ios: 'http://localhost:3000',
-    default: 'http://localhost:3000',
+    web: 'https://backend-cosevi.onrender.com',
+    android: 'https://backend-cosevi.onrender.com',
+    ios: 'https://backend-cosevi.onrender.com',
+    default: 'https://backend-cosevi.onrender.com',
 });
