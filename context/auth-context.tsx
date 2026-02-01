@@ -122,6 +122,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         socket.on('statusUpdate', (data: any) => {
             console.log('Status update received via socket:', data);
+            if (data.type === 'USER_UPDATED' && data.user && data.user.id === user.id) {
+                console.log('Current user updated! Refreshing session...');
+                updateUser(data.user);
+            }
             refreshData();
         });
 
