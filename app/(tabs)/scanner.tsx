@@ -29,6 +29,7 @@ export default function ScannerScreen() {
     // Animation refs
     const successAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
+    const lastScanRef = useRef<{ data: string, time: number } | null>(null);
 
     useEffect(() => {
         const subscription = AppState.addEventListener('change', nextAppState => {
@@ -125,15 +126,12 @@ export default function ScannerScreen() {
             setManualCode('');
             showSuccessFeedback();
 
-            const isExit = response.data.status === 'CHECKED_OUT';
-            const title = isExit ? t('exitRegistered') : t('accessGranted');
-            const message = isExit
-                ? t('checkOutSuccess').replace('{name}', response.data.visitorName || response.data.visitor?.name)
-                : t('checkInSuccess').replace('{name}', response.data.visitorName || response.data.visitor?.name);
-
+            const isCheckOut = response.data.status === 'CHECKED_OUT';
             Alert.alert(
-                title,
-                message,
+                isCheckOut ? t('exitRegistered') : t('accessGranted'),
+                isCheckOut
+                    ? t('checkOutSuccess').replace('{name}', response.data.visitorName || response.data.visitor?.name)
+                    : t('checkInSuccess').replace('{name}', response.data.visitorName || response.data.visitor?.name),
                 [{ text: "OK" }]
             );
         } catch (error: any) {
@@ -145,17 +143,15 @@ export default function ScannerScreen() {
         }
     };
 
-    const lastScanned = useRef<{ code: string; time: number } | null>(null);
-
     const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
         if (scanned || loading) return;
 
-        // Debounce: Improve performance checking against last scan
-        const now = Date.now();
-        if (lastScanned.current && lastScanned.current.code === data && (now - lastScanned.current.time) < 3000) {
+        // Anti-throttle check: ignore same code scanned within 5 seconds
+        const nowMs = Date.now();
+        if (lastScanRef.current && lastScanRef.current.data === data && (nowMs - lastScanRef.current.time < 5000)) {
             return;
         }
-        lastScanned.current = { code: data, time: now };
+        lastScanRef.current = { data, time: nowMs };
 
         setScanned(true);
         setLoading(true);
@@ -183,15 +179,20 @@ export default function ScannerScreen() {
 
             const response = await axios.post(`${API_URL}/visits/check-in`, { qrCode });
 
-            const isExit = response.data.status === 'CHECKED_OUT';
-            const title = isExit ? t('exitRegistered') : t('accessGranted');
-            const message = isExit
+            const isCheckOut = response.data.status === 'CHECKED_OUT';
+            const isVip = response.data.isVip === true;
+
+            let alertMessage = isCheckOut
                 ? t('checkOutSuccess').replace('{name}', response.data.visitorName)
                 : t('checkInSuccess').replace('{name}', response.data.visitorName);
 
+            if (isVip && !isCheckOut) {
+                alertMessage += `\n\n⭐ VIP - NO REVISAR VEHÍCULO`;
+            }
+
             Alert.alert(
-                title,
-                message,
+                isCheckOut ? t('exitRegistered') : t('accessGranted'),
+                alertMessage,
                 [{ text: t('scanNext'), onPress: () => setScanned(false) }]
             );
         } catch (error: any) {

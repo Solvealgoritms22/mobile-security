@@ -79,12 +79,15 @@ const translations: Record<Language, Record<string, string>> = {
         enter4DigitCode: 'Please enter a 4-digit code',
         accessGranted: 'Access Granted',
         checkInSuccess: 'Visitor: {name}\nStatus: CHECKED IN',
+        checkOutSuccess: 'Visitor: {name}\nStatus: CHECKED OUT',
+        exitRegistered: 'Exit Registered',
         accessDenied: 'Access Denied',
         invalidExpiredCode: 'Invalid or expired code',
         residentApproved: 'Resident Approved',
         residentAccessVerified: 'Access verified successfully.',
         assignedResident: 'Assigned Resident',
         scanNext: 'Scan Next',
+        cameraMountError: 'Error starting camera',
 
         // Manual Entry
         visitDestination: 'Visit Destination (Resident) *',
@@ -235,6 +238,7 @@ const translations: Record<Language, Record<string, string>> = {
         authorizedByHost: 'AUTHORIZED BY (HOST)',
         created: 'Created',
         entry: 'Entry',
+        markExit: 'Mark Exit',
     },
     es: {
         // Tabs
@@ -305,12 +309,15 @@ const translations: Record<Language, Record<string, string>> = {
         enter4DigitCode: 'Por favor ingrese un código de 4 dígitos',
         accessGranted: 'Acceso Concedido',
         checkInSuccess: 'Visitante: {name}\nEstado: INGRESADO',
+        checkOutSuccess: 'Visitante: {name}\nEstado: SALIDA',
+        exitRegistered: 'Salida Registrada',
         accessDenied: 'Acceso Denegado',
         invalidExpiredCode: 'Código inválido o expirado',
         residentApproved: 'Residente Aprobado',
         residentAccessVerified: 'Acceso verificado exitosamente.',
         assignedResident: 'Residente Asignado',
         scanNext: 'Escanear Siguiente',
+        cameraMountError: 'Error al iniciar la cámara',
 
         // Manual Entry
         visitDestination: 'Destino de Visita (Residente) *',
@@ -461,6 +468,7 @@ const translations: Record<Language, Record<string, string>> = {
         authorizedByHost: 'AUTORIZADO POR (ANFITRIÓN)',
         created: 'Creado',
         entry: 'Entrada',
+        markExit: 'Marcar Salida',
     }
 };
 

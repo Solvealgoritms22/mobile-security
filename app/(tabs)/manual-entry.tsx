@@ -101,7 +101,7 @@ export default function ManualEntryScreen() {
 
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/visits/manual-checkin`, {
+            const response = await axios.post(`${API_URL}/visits/manual-checkin`, {
                 visitorName,
                 visitorIdNumber: visitorId,
                 licensePlate: licensePlate || undefined,
@@ -118,9 +118,22 @@ export default function ManualEntryScreen() {
                 }
             });
 
-            showToast(t('checkInToastSuccess'), 'success');
-            refreshData();
-            router.back();
+            const isVip = response.data.isVip === true;
+            let successMsg = t('checkInToastSuccess');
+            if (isVip) {
+                successMsg += '\n\n⭐ VIP - NO REVISAR VEHÍCULO';
+            }
+
+            Alert.alert(
+                t('accessGranted'),
+                successMsg,
+                [{
+                    text: 'OK', onPress: () => {
+                        refreshData();
+                        router.back();
+                    }
+                }]
+            );
         } catch (error: any) {
             showToast(error.response?.data?.message || t('checkInFailed'), 'error');
         } finally {

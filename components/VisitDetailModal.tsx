@@ -1,10 +1,11 @@
 import { API_URL } from '@/constants/api';
+import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -18,18 +19,21 @@ interface VisitDetailModalProps {
 
 export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalProps) => {
     const { t } = useTranslation();
-    const [loading, setLoading] = React.useState(false);
+    const { refreshData } = useAuth();
+    const [loading, setLoading] = useState(false);
 
     if (!visit) return null;
 
     const handleCheckOut = async () => {
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/visits/check-in`, { qrCode: visit.qrCode || visit.accessCode });
-            Alert.alert(t('success'), t('visitEnded'));
+            await axios.patch(`${API_URL}/visits/${visit.id}/check-out`);
+            Alert.alert(t('success'), t('visitorCheckedOut'));
+            refreshData();
             onClose();
-        } catch (error) {
-            Alert.alert(t('error'), t('operationFailed'));
+        } catch (error: any) {
+            console.error('Check-out error:', error);
+            Alert.alert(t('error'), t('checkoutFailed'));
         } finally {
             setLoading(false);
         }
@@ -210,13 +214,17 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                             )}
                         </View>
 
+                        {/* Manual Check-out Button */}
                         {visit.status === 'CHECKED_IN' && (
                             <TouchableOpacity
-                                style={[styles.actionButton, styles.checkoutButton]}
+                                style={[styles.checkoutButton, loading && styles.buttonDisabled]}
                                 onPress={handleCheckOut}
                                 disabled={loading}
                             >
-                                <Text style={styles.actionButtonText}>{loading ? t('processing') : t('markExit')}</Text>
+                                <Ionicons name="log-out-outline" size={20} color="#ffffff" />
+                                <Text style={styles.checkoutButtonText}>
+                                    {loading ? t('loading') : t('markExit')}
+                                </Text>
                             </TouchableOpacity>
                         )}
                     </ScrollView>
@@ -445,25 +453,22 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#64748b',
     },
-    actionButton: {
-        marginTop: 24,
-        paddingVertical: 16,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     checkoutButton: {
         backgroundColor: '#ef4444',
-        shadowColor: '#ef4444',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        borderRadius: 16,
+        marginTop: 24,
+        gap: 12,
     },
-    actionButtonText: {
+    checkoutButtonText: {
         color: '#ffffff',
         fontSize: 16,
         fontWeight: 'bold',
-        letterSpacing: 0.5,
+    },
+    buttonDisabled: {
+        opacity: 0.5,
     }
 });
