@@ -2,8 +2,9 @@ import { API_URL } from '@/constants/api';
 import { useTranslation } from '@/context/translation-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
 import React from 'react';
-import { Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 const { width } = Dimensions.get('window');
@@ -17,6 +18,14 @@ interface VisitDetailModalProps {
 export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalProps) => {
     const { t } = useTranslation();
     if (!visit) return null;
+
+    const getImageUrl = (path?: string) => {
+        if (!path) return null;
+        if (path.startsWith('http')) return path;
+        const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        return `${baseUrl}${normalizedPath}`;
+    };
 
     const getImages = () => {
         if (!visit.images) return [];
@@ -91,8 +100,10 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                                 {images.map((img: string, index: number) => (
                                     <Image
                                         key={index}
-                                        source={{ uri: img.startsWith('http') ? img : `${API_URL}${img}` }}
+                                        source={{ uri: getImageUrl(img) || undefined }}
                                         style={styles.visitorImage}
+                                        contentFit="cover"
+                                        transition={500}
                                     />
                                 ))}
                             </ScrollView>

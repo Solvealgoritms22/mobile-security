@@ -105,10 +105,13 @@ export default function ManualEntryScreen() {
                 visitorName,
                 visitorIdNumber: visitorId,
                 licensePlate: licensePlate || undefined,
+                vehiclePlate: licensePlate || undefined,
                 companionCount: parseInt(companions) || 0,
+                companions: parseInt(companions) || 0,
                 spaceId: selectedSpaceId || undefined,
-                images: image ? [image] : [],
+                images: image ? JSON.stringify([image]) : JSON.stringify([]),
                 hostId: selectedResident?.id,
+                residentId: selectedResident?.id,
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`

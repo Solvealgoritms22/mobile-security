@@ -80,14 +80,7 @@ export default function SecurityDashboard() {
 
       // Set recent activity (last 4 visits)
       if (Array.isArray(visits)) {
-        const recentVisits = visits.slice(0, 4).map((v: any) => ({
-          id: v.id,
-          name: v.visitorName || t('guest'),
-          idNumber: v.visitorIdNumber || 'N/A',
-          status: v.status,
-          createdAt: v.createdAt || new Date().toISOString(),
-        }));
-        setRecentActivity(recentVisits);
+        setRecentActivity(visits.slice(0, 4));
       }
       setLoading(false);
     } catch (error) {
