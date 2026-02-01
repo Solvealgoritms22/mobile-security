@@ -212,6 +212,12 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                                     <Text style={styles.metaText}>{t('entry')}: {new Date(visit.entryTime).toLocaleString()}</Text>
                                 </View>
                             )}
+                            {visit.exitTime && (
+                                <View style={styles.metaRow}>
+                                    <Ionicons name="log-out-outline" size={16} color="#ef4444" />
+                                    <Text style={styles.metaText}>{t('exit')}: {new Date(visit.exitTime).toLocaleString()}</Text>
+                                </View>
+                            )}
                         </View>
 
                         {/* Manual Check-out Button */}
