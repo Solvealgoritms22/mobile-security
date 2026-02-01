@@ -14,7 +14,7 @@ import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
 
 export default function ManualEntryScreen() {
-    const { token } = useAuth();
+    const { token, refreshData } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     const { t } = useTranslation();
@@ -119,6 +119,7 @@ export default function ManualEntryScreen() {
             });
 
             showToast(t('checkInToastSuccess'), 'success');
+            refreshData();
             router.back();
         } catch (error: any) {
             showToast(error.response?.data?.message || t('checkInFailed'), 'error');

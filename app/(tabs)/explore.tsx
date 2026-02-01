@@ -1,13 +1,14 @@
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { API_URL } from '@/constants/api';
-import { useTranslation } from '@/context/translation-context';
 import { VisitDetailModal } from '@/components/VisitDetailModal';
+import { API_URL } from '@/constants/api';
+import { useAuth } from '@/context/auth-context';
+import { useTranslation } from '@/context/translation-context';
 
 export default function ActivityLog() {
   const { t } = useTranslation();
@@ -31,8 +32,14 @@ export default function ActivityLog() {
     }
   };
 
+  const { onDataRefresh } = useAuth();
+
   useEffect(() => {
     fetchActivities();
+    const unsubscribe = onDataRefresh(() => {
+      fetchActivities();
+    });
+    return unsubscribe;
   }, []);
 
   const onRefresh = async () => {

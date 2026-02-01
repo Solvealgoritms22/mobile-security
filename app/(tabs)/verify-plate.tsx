@@ -1,13 +1,13 @@
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import axios from 'axios';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { useAuth } from '@/context/auth-context';
 import { API_URL } from '@/constants/api';
+import { useAuth } from '@/context/auth-context';
 
 import { useTranslation } from '@/context/translation-context';
 
@@ -27,15 +27,18 @@ export default function VerifyPlateScreen() {
 
         setLoading(true);
         try {
-            const response = await axios.get(`${API_URL}/lpr/verify/${plate}`, {
+            const cleanPlate = plate.trim().toUpperCase();
+            const response = await axios.get(`${API_URL}/lpr/verify/${cleanPlate}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
-            const { found, visit } = response.data;
+            const { found, visit, visits } = response.data;
 
             if (found) {
-                setResult({ found: true, visits: [visit] });
+                // Backend might return single 'visit' or array 'visits'
+                const results = visits || (visit ? [visit] : []);
+                setResult({ found: results.length > 0, visits: results });
             } else {
                 setResult({ found: false });
             }
@@ -105,7 +108,7 @@ export default function VerifyPlateScreen() {
                                         <View style={styles.infoRow}>
                                             <Ionicons name="card-outline" size={20} color="#94a3b8" />
                                             <Text style={styles.infoLabel}>{t('idLabel')}</Text>
-                                            <Text style={styles.infoValue}>{visit.visitorIdNumber}</Text>
+                                            <Text style={styles.infoValue}>{visit.visitorIdNumber || visit.idNumber}</Text>
                                         </View>
                                         <View style={styles.infoRow}>
                                             <Ionicons name="person-circle-outline" size={20} color="#94a3b8" />

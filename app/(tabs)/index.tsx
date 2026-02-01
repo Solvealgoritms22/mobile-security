@@ -25,9 +25,16 @@ export default function SecurityDashboard() {
 
   const getImageUrl = (path?: string) => {
     if (!path) return null;
-    if (path.startsWith('http')) return path;
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+
+    // Normalize path: replace backslashes (Windows) with forward slashes
+    let normalizedPath = path.replace(/\\/g, '/');
+
     const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    if (!normalizedPath.startsWith('/')) {
+      normalizedPath = '/' + normalizedPath;
+    }
+
     return `${baseUrl}${normalizedPath}`;
   };
 

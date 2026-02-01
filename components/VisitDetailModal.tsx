@@ -21,34 +21,50 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
 
     const getImageUrl = (path?: string) => {
         if (!path) return null;
-        if (path.startsWith('http')) return path;
+        if (path.startsWith('http') || path.startsWith('data:')) return path;
+
+        // Normalize path: replace backslashes (Windows) with forward slashes
+        let normalizedPath = path.replace(/\\/g, '/');
+
+        // Remove leading slash if baseline has trailing or vice-versa
         const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
-        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        if (!normalizedPath.startsWith('/')) {
+            normalizedPath = '/' + normalizedPath;
+        }
+
         return `${baseUrl}${normalizedPath}`;
     };
 
     const getImages = () => {
         if (!visit.images) return [];
+        let imageArray = [];
         if (typeof visit.images === 'string') {
             try {
-                return JSON.parse(visit.images);
+                imageArray = JSON.parse(visit.images);
             } catch (e) {
-                return [visit.images];
+                imageArray = [visit.images];
             }
+        } else {
+            imageArray = Array.isArray(visit.images) ? visit.images : [visit.images];
         }
-        return Array.isArray(visit.images) ? visit.images : [visit.images];
+
+        // Filter out empty strings and nulls
+        return imageArray.filter((img: any) => typeof img === 'string' && img.length > 0);
     };
 
     const images = getImages();
 
     const getStatusConfig = (status: string) => {
         const s = status?.toUpperCase();
-        if (s === 'CHECKED_IN' || s === 'APPROVED') return { label: t('success'), color: '#10b981' };
+        if (s === 'CHECKED_IN' || s === 'APPROVED' || s === 'EXITOSO') return { label: t('success'), color: '#10b981' };
         if (s === 'PENDING') return { label: t('pending'), color: '#f59e0b' };
         return { label: s || t('unknownStatus'), color: '#ef4444' };
     };
 
     const config = getStatusConfig(visit.status);
+
+    // Get the entry code from various possible fields
+    const entryCode = visit.accessCode || visit.visitCode || visit.code || visit.manualCode;
 
     return (
         <Modal
@@ -76,11 +92,11 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                         </View>
 
                         {/* QR Code Section (if available) */}
-                        {visit.qrCode && (
+                        {((visit.qrCode || entryCode) && visit.status !== 'CHECKED_OUT') && (
                             <View style={styles.qrSection}>
                                 <View style={styles.qrContainer}>
                                     <QRCode
-                                        value={visit.qrCode}
+                                        value={visit.qrCode || entryCode || 'INVALID'}
                                         size={180}
                                         color="#000000"
                                         backgroundColor="#ffffff"
@@ -89,7 +105,7 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                                 </View>
                                 <View style={styles.accessCodeContainer}>
                                     <Text style={styles.accessCodeLabel}>{t('manualEntryCode')}</Text>
-                                    <Text style={styles.accessCodeValue}>{visit.accessCode}</Text>
+                                    <Text style={styles.accessCodeValue}>{entryCode || '----'}</Text>
                                 </View>
                             </View>
                         )}
@@ -116,8 +132,8 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
 
                         {/* Info Sections */}
                         <View style={styles.infoSection}>
-                            <Text style={styles.visitorName}>{visit.visitorName || visit.name}</Text>
-                            <Text style={styles.idNumber}>{visit.visitorIdNumber || visit.idNumber}</Text>
+                            <Text style={styles.visitorName}>{visit.visitorName || visit.name || t('guest')}</Text>
+                            <Text style={styles.idNumber}>{visit.visitorIdNumber || visit.idNumber || 'N/A'}</Text>
                         </View>
 
                         <View style={styles.grid}>

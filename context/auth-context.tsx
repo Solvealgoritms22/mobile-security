@@ -33,6 +33,7 @@ interface AuthContextType {
     updateUser: (partialUser: Partial<User>) => Promise<void>;
     updatePushToken: (token: string) => Promise<void>;
     onDataRefresh: (callback: () => void) => () => void;
+    refreshData: () => void;
 }
 
 Notifications.setNotificationHandler({
@@ -111,7 +112,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         socket.on('visitUpdate', (update: any) => {
             console.log('Real-time visit update received:', update);
-            refreshCallbacks.forEach(cb => cb());
+            refreshData();
+        });
+
+        socket.on('newVisit', (visit: any) => {
+            console.log('New visit received via socket:', visit);
+            refreshData();
+        });
+
+        socket.on('statusUpdate', (data: any) => {
+            console.log('Status update received via socket:', data);
+            refreshData();
         });
 
         // Push Notification Listeners (Native Only)
@@ -257,8 +268,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     };
 
+    const refreshData = () => {
+        console.log('Triggering global data refresh...');
+        refreshCallbacks.forEach(cb => {
+            try {
+                cb();
+            } catch (e) {
+                console.error('Error in refresh callback:', e);
+            }
+        });
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser, updatePushToken, onDataRefresh }}>
+        <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser, updatePushToken, onDataRefresh, refreshData }}>
             {children}
         </AuthContext.Provider>
     );
