@@ -1,12 +1,12 @@
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { BlurView } from 'expo-blur';
-import { useState, useRef, useEffect } from 'react';
-import { Button, StyleSheet, Text, Pressable, View, Alert, Dimensions, Animated, TextInput, Modal, AppState, AppStateStatus, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { useIsFocused } from '@react-navigation/native';
 import axios from 'axios';
+import { BlurView } from 'expo-blur';
+import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Animated, AppState, Dimensions, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { API_URL } from '../../constants/api';
 import { useTranslation } from '../../context/translation-context';
 
@@ -125,9 +125,15 @@ export default function ScannerScreen() {
             setManualCode('');
             showSuccessFeedback();
 
+            const isExit = response.data.status === 'CHECKED_OUT';
+            const title = isExit ? t('exitRegistered') : t('accessGranted');
+            const message = isExit
+                ? t('checkOutSuccess').replace('{name}', response.data.visitorName || response.data.visitor?.name)
+                : t('checkInSuccess').replace('{name}', response.data.visitorName || response.data.visitor?.name);
+
             Alert.alert(
-                t('accessGranted'),
-                t('checkInSuccess').replace('{name}', response.data.visitorName || response.data.visitor?.name),
+                title,
+                message,
                 [{ text: "OK" }]
             );
         } catch (error: any) {
@@ -139,8 +145,17 @@ export default function ScannerScreen() {
         }
     };
 
+    const lastScanned = useRef<{ code: string; time: number } | null>(null);
+
     const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
         if (scanned || loading) return;
+
+        // Debounce: Improve performance checking against last scan
+        const now = Date.now();
+        if (lastScanned.current && lastScanned.current.code === data && (now - lastScanned.current.time) < 3000) {
+            return;
+        }
+        lastScanned.current = { code: data, time: now };
 
         setScanned(true);
         setLoading(true);
@@ -168,9 +183,15 @@ export default function ScannerScreen() {
 
             const response = await axios.post(`${API_URL}/visits/check-in`, { qrCode });
 
+            const isExit = response.data.status === 'CHECKED_OUT';
+            const title = isExit ? t('exitRegistered') : t('accessGranted');
+            const message = isExit
+                ? t('checkOutSuccess').replace('{name}', response.data.visitorName)
+                : t('checkInSuccess').replace('{name}', response.data.visitorName);
+
             Alert.alert(
-                t('accessGranted'),
-                t('checkInSuccess').replace('{name}', response.data.visitorName),
+                title,
+                message,
                 [{ text: t('scanNext'), onPress: () => setScanned(false) }]
             );
         } catch (error: any) {
