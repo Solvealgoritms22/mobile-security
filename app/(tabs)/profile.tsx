@@ -1,16 +1,16 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform, ActivityIndicator, Switch } from 'react-native';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { useAuth } from '@/context/auth-context';
-import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import axios from 'axios';
-import { API_URL } from '@/constants/api';
 import { useToast } from '@/components/ui/Toast';
-import { useTranslation, Language } from '@/context/translation-context';
+import { API_URL } from '@/constants/api';
+import { useAuth } from '@/context/auth-context';
+import { useTranslation } from '@/context/translation-context';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=3b82f6&color=fff&size=128&name=';
 
@@ -21,6 +21,15 @@ export default function ProfileScreen() {
     const { showToast } = useToast();
     const [uploading, setUploading] = useState(false);
     const [updatingPrefs, setUpdatingPrefs] = useState(false);
+    const [imageError, setImageError] = useState(false);
+
+    const getInitials = (name: string) => {
+        return name?.split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2) || 'S';
+    };
 
     const handleLogout = () => {
         if (Platform.OS === 'web') {
@@ -140,13 +149,20 @@ export default function ProfileScreen() {
                 <View style={styles.header}>
                     <TouchableOpacity onPress={handleImagePick} disabled={uploading} style={styles.avatarContainer}>
                         <BlurView intensity={80} tint="dark" style={styles.avatarBlur}>
-                            <Image
-                                source={{ uri: getProfileImage() }}
-                                style={styles.avatarImage}
-                                contentFit="cover"
-                                transition={500}
-                                placeholderContentFit="cover"
-                            />
+                            {(!user.profileImage || imageError) ? (
+                                <View style={styles.avatarInner}>
+                                    <Text style={styles.avatarText}>{getInitials(user.name)}</Text>
+                                </View>
+                            ) : (
+                                <Image
+                                    source={{ uri: getProfileImage() }}
+                                    style={styles.avatarImage}
+                                    contentFit="cover"
+                                    transition={500}
+                                    placeholderContentFit="cover"
+                                    onError={() => setImageError(true)}
+                                />
+                            )}
                             {uploading && (
                                 <View style={styles.uploadingOverlay}>
                                     <ActivityIndicator color="#ffffff" />
@@ -319,12 +335,17 @@ const styles = StyleSheet.create({
         resizeMode: 'cover',
     },
     avatarInner: {
-        width: 94,
-        height: 94,
-        borderRadius: 47,
-        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    avatarText: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#3b82f6',
     },
     roleLabel: {
         fontSize: 12,

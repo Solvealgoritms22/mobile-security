@@ -84,7 +84,7 @@ export default function ManualEntryScreen() {
             mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [4, 3],
-            quality: 0.4,
+            quality: 0.3,
             base64: true,
         });
 
@@ -107,7 +107,7 @@ export default function ManualEntryScreen() {
                 licensePlate: licensePlate || undefined,
                 companionCount: parseInt(companions) || 0,
                 spaceId: selectedSpaceId || undefined,
-                images: image ? JSON.stringify([image]) : undefined,
+                images: image ? [image] : [],
                 hostId: selectedResident?.id,
             }, {
                 headers: {
@@ -260,7 +260,7 @@ export default function ManualEntryScreen() {
                     loading={loading}
                     variant="primary"
                     icon="checkmark-circle-outline"
-                    style={{ marginTop: 8 }}
+                    style={{ marginTop: 8, marginBottom: 40 }}
                 />
             </ScrollView>
 

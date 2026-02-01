@@ -1,3 +1,4 @@
+import { API_URL } from '@/constants/api';
 import { useTranslation } from '@/context/translation-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -17,7 +18,19 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
     const { t } = useTranslation();
     if (!visit) return null;
 
-    const images = visit.images ? JSON.parse(visit.images) : [];
+    const getImages = () => {
+        if (!visit.images) return [];
+        if (typeof visit.images === 'string') {
+            try {
+                return JSON.parse(visit.images);
+            } catch (e) {
+                return [visit.images];
+            }
+        }
+        return Array.isArray(visit.images) ? visit.images : [visit.images];
+    };
+
+    const images = getImages();
 
     const getStatusConfig = (status: string) => {
         const s = status?.toUpperCase();
@@ -76,7 +89,11 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                         {images.length > 0 ? (
                             <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.imageGallery}>
                                 {images.map((img: string, index: number) => (
-                                    <Image key={index} source={{ uri: img }} style={styles.visitorImage} />
+                                    <Image
+                                        key={index}
+                                        source={{ uri: img.startsWith('http') ? img : `${API_URL}${img}` }}
+                                        style={styles.visitorImage}
+                                    />
                                 ))}
                             </ScrollView>
                         ) : (
@@ -97,14 +114,14 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                                 <Ionicons name="car-outline" size={20} color="#3b82f6" />
                                 <View>
                                     <Text style={styles.gridLabel}>{t('vehiclePlate')}</Text>
-                                    <Text style={styles.gridValue}>{visit.licensePlate || t('none')}</Text>
+                                    <Text style={styles.gridValue}>{visit.vehiclePlate || visit.licensePlate || t('none')}</Text>
                                 </View>
                             </View>
                             <View style={styles.gridItem}>
                                 <Ionicons name="people-outline" size={20} color="#3b82f6" />
                                 <View>
                                     <Text style={styles.gridLabel}>{t('companions')}</Text>
-                                    <Text style={styles.gridValue}>{visit.companionCount || 0}</Text>
+                                    <Text style={styles.gridValue}>{visit.companions || visit.companionCount || 0}</Text>
                                 </View>
                             </View>
                         </View>
@@ -131,8 +148,8 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                                     <Ionicons name="person" size={20} color="#ffffff" />
                                 </View>
                                 <View>
-                                    <Text style={styles.hostName}>{visit.host?.name || t('authorized')}</Text>
-                                    <Text style={styles.hostEmail}>{visit.host?.email || t('resident')}</Text>
+                                    <Text style={styles.hostName}>{visit.resident?.name || visit.host?.name || t('authorized')}</Text>
+                                    <Text style={styles.hostEmail}>{visit.resident?.email || visit.host?.email || t('resident')}</Text>
                                 </View>
                             </View>
                         </BlurView>

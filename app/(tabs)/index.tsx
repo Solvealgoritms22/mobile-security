@@ -6,10 +6,11 @@ import { useTranslation } from '@/context/translation-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SecurityDashboard() {
   const router = useRouter();
@@ -20,6 +21,28 @@ export default function SecurityDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const getImageUrl = (path?: string) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${baseUrl}${normalizedPath}`;
+  };
+
+  const getInitials = (name: string) => {
+    return name?.split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2) || 'S';
+  };
+
+  // Reset image error when profile image changes
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.profileImage]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -104,18 +127,19 @@ export default function SecurityDashboard() {
               <Text style={styles.userName}>{user?.name || t('officer')}</Text>
               <Text style={styles.badge}>{user?.email}</Text>
             </View>
-            {user?.profileImage ? (
+            {(user?.profileImage && !imageError) ? (
               <View style={styles.headerAvatarContainer}>
                 <Image
-                  source={{ uri: user.profileImage.startsWith('http') ? user.profileImage : `${API_URL}${user.profileImage}` }}
+                  source={{ uri: getImageUrl(user.profileImage) || undefined }}
                   style={styles.headerAvatar}
+                  contentFit="cover"
+                  transition={500}
+                  onError={() => setImageError(true)}
                 />
               </View>
             ) : (
-              <View style={styles.headerAvatarContainer}>
-                <View style={styles.headerAvatarPlaceholder}>
-                  <Ionicons name="person" size={28} color="#ffffff" />
-                </View>
+              <View style={styles.headerAvatarFallback}>
+                <Text style={styles.avatarText}>{getInitials(user?.name || '')}</Text>
               </View>
             )}
           </View>
@@ -308,6 +332,21 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     resizeMode: 'cover',
+  },
+  headerAvatarFallback: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#3b82f6',
   },
   logoutIconButton: {
     width: 44,
