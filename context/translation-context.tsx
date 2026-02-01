@@ -215,6 +215,25 @@ const translations: Record<Language, Record<string, string>> = {
         loginError: 'Login failed. Check credentials.',
         welcomeBack: 'Welcome back!',
         enterCredentials: 'Please enter both email and password',
+
+        // Common / Missing
+        details: 'Details',
+        manualEntryCode: 'MANUAL ENTRY CODE',
+        noVisitorsFound: 'No Visitors found',
+        vehiclePlate: 'Vehicle Plate',
+        companions: 'Companions',
+        welcome: 'Welcome',
+        resident: 'Resident',
+        visitDetails: 'Visit Details',
+        success: 'SUCCESS',
+        pending: 'PENDING',
+        unknownStatus: 'UNKNOWN',
+        noImageAvailable: 'No image available',
+        assignedParkingSpace: 'ASSIGNED PARKING SPACE',
+        parkingGuide: 'Guide the guest to this spot',
+        authorizedByHost: 'AUTHORIZED BY (HOST)',
+        created: 'Created',
+        entry: 'Entry',
     },
     es: {
         // Tabs
@@ -264,7 +283,7 @@ const translations: Record<Language, Record<string, string>> = {
         validateVisitorEntry: 'Validar entrada de visitante',
         officer: 'Oficial',
         guest: 'Invitado',
-        visitor: 'Visitante',
+        // visitor: 'Visitante', // This key is not duplicated, but 'resident' is.
         noRecentActivity: 'No hay actividad reciente',
         logout: 'Cerrar Sesión',
         signOut: 'Cerrar Sesión',
@@ -421,6 +440,25 @@ const translations: Record<Language, Record<string, string>> = {
         loginError: 'Inicio de sesión fallido. Verifique credenciales.',
         welcomeBack: '¡Bienvenido de vuelta!',
         enterCredentials: 'Por favor ingrese correo y contraseña',
+
+        // Comunes / Faltantes
+        details: 'Detalles',
+        manualEntryCode: 'CÓDIGO DE ENTRADA MANUAL',
+        noVisitorsFound: 'No se encontraron visitantes',
+        vehiclePlate: 'Placa del Vehículo',
+        companions: 'Acompañantes',
+        welcome: 'Bienvenido',
+        resident: 'Residente',
+        visitDetails: 'Detalles de la Visita',
+        success: 'EXITOSO',
+        pending: 'PENDIENTE',
+        unknownStatus: 'DESCONOCIDO',
+        noImageAvailable: 'No hay imagen disponible',
+        assignedParkingSpace: 'ESPACIO DE PARQUEO ASIGNADO',
+        parkingGuide: 'Guíe al invitado a este lugar',
+        authorizedByHost: 'AUTORIZADO POR (ANFITRIÓN)',
+        created: 'Creado',
+        entry: 'Entrada',
     }
 };
 

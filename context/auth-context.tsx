@@ -1,14 +1,14 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter, useSegments } from 'expo-router';
-import axios from 'axios';
-import { io } from 'socket.io-client';
-import * as Haptics from 'expo-haptics';
-import { Alert, Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
 import { API_URL } from '@/constants/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
+import { useRouter, useSegments } from 'expo-router';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Alert, Platform } from 'react-native';
+import { io } from 'socket.io-client';
 
 interface User {
     id: string;
@@ -32,6 +32,7 @@ interface AuthContextType {
     logout: () => Promise<void>;
     updateUser: (partialUser: Partial<User>) => Promise<void>;
     updatePushToken: (token: string) => Promise<void>;
+    onDataRefresh: (callback: () => void) => () => void;
 }
 
 Notifications.setNotificationHandler({
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [refreshCallbacks, setRefreshCallbacks] = useState<(() => void)[]>([]);
     const router = useRouter();
     const segments = useSegments();
 
@@ -105,6 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 [{ text: 'ACKNOWLEDGE', style: 'destructive' }],
                 { cancelable: false }
             );
+        });
+
+        socket.on('visitUpdate', (update: any) => {
+            console.log('Real-time visit update received:', update);
+            refreshCallbacks.forEach(cb => cb());
         });
 
         // Push Notification Listeners (Native Only)
@@ -243,8 +250,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const onDataRefresh = (callback: () => void) => {
+        setRefreshCallbacks(prev => [...prev, callback]);
+        return () => {
+            setRefreshCallbacks(prev => prev.filter(cb => cb !== callback));
+        };
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser, updatePushToken }}>
+        <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser, updatePushToken, onDataRefresh }}>
             {children}
         </AuthContext.Provider>
     );

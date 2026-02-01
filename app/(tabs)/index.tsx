@@ -1,20 +1,20 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Alert, Image, Modal } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, Link } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { useAuth } from '@/context/auth-context';
-import axios from 'axios';
-import { API_URL } from '@/constants/api';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { VisitDetailModal } from '@/components/VisitDetailModal';
+import { API_URL } from '@/constants/api';
+import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SecurityDashboard() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, onDataRefresh } = useAuth();
   const [stats, setStats] = useState({ today: 0, pending: 0, flagged: 0 });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +23,13 @@ export default function SecurityDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Re-fetch data on real-time updates
+    const unsubscribe = onDataRefresh(() => {
+      fetchDashboardData();
+    });
+
+    return unsubscribe;
   }, []);
 
   const fetchDashboardData = async () => {
@@ -105,9 +112,10 @@ export default function SecurityDashboard() {
                 />
               </View>
             ) : (
-              <View style={styles.statusBadge}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>{t('onDuty')}</Text>
+              <View style={styles.headerAvatarContainer}>
+                <View style={styles.headerAvatarPlaceholder}>
+                  <Ionicons name="person" size={28} color="#ffffff" />
+                </View>
               </View>
             )}
           </View>
@@ -286,8 +294,15 @@ const styles = StyleSheet.create({
   headerAvatarContainer: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: 'rgba(59, 130, 246, 0.5)',
+    borderColor: '#3b82f6',
     overflow: 'hidden',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  headerAvatarPlaceholder: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerAvatar: {
     width: 48,

@@ -1,8 +1,8 @@
-import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { useTranslation } from '@/context/translation-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import React from 'react';
+import { Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 const { width } = Dimensions.get('window');
@@ -14,15 +14,16 @@ interface VisitDetailModalProps {
 }
 
 export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalProps) => {
+    const { t } = useTranslation();
     if (!visit) return null;
 
     const images = visit.images ? JSON.parse(visit.images) : [];
 
     const getStatusConfig = (status: string) => {
         const s = status?.toUpperCase();
-        if (s === 'CHECKED_IN' || s === 'APPROVED') return { label: 'SUCCESS', color: '#10b981' };
-        if (s === 'PENDING') return { label: 'PENDING', color: '#f59e0b' };
-        return { label: s || 'UNKNOWN', color: '#ef4444' };
+        if (s === 'CHECKED_IN' || s === 'APPROVED') return { label: t('success'), color: '#10b981' };
+        if (s === 'PENDING') return { label: t('pending'), color: '#f59e0b' };
+        return { label: s || t('unknownStatus'), color: '#ef4444' };
     };
 
     const config = getStatusConfig(visit.status);
@@ -39,7 +40,7 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                     <View style={styles.handle} />
 
                     <View style={styles.header}>
-                        <Text style={styles.headerTitle}>Visit Details</Text>
+                        <Text style={styles.headerTitle}>{t('visitDetails')}</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                             <Ionicons name="close" size={24} color="#ffffff" />
                         </TouchableOpacity>
@@ -65,7 +66,7 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                                     />
                                 </View>
                                 <View style={styles.accessCodeContainer}>
-                                    <Text style={styles.accessCodeLabel}>MANUAL ENTRY CODE</Text>
+                                    <Text style={styles.accessCodeLabel}>{t('manualEntryCode')}</Text>
                                     <Text style={styles.accessCodeValue}>{visit.accessCode}</Text>
                                 </View>
                             </View>
@@ -80,8 +81,8 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                             </ScrollView>
                         ) : (
                             <View style={styles.noImageContainer}>
-                                <Ionicons name="image-outline" size={48} color="#475569" />
-                                <Text style={styles.noImageText}>No image available</Text>
+                                <Ionicons name="person-outline" size={48} color="#475569" />
+                                <Text style={styles.noImageText}>{t('noImageAvailable')}</Text>
                             </View>
                         )}
 
@@ -95,14 +96,14 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                             <View style={styles.gridItem}>
                                 <Ionicons name="car-outline" size={20} color="#3b82f6" />
                                 <View>
-                                    <Text style={styles.gridLabel}>VEHICLE PLATE</Text>
-                                    <Text style={styles.gridValue}>{visit.licensePlate || 'None'}</Text>
+                                    <Text style={styles.gridLabel}>{t('vehiclePlate')}</Text>
+                                    <Text style={styles.gridValue}>{visit.licensePlate || t('none')}</Text>
                                 </View>
                             </View>
                             <View style={styles.gridItem}>
                                 <Ionicons name="people-outline" size={20} color="#3b82f6" />
                                 <View>
-                                    <Text style={styles.gridLabel}>COMPANIONS</Text>
+                                    <Text style={styles.gridLabel}>{t('companions')}</Text>
                                     <Text style={styles.gridValue}>{visit.companionCount || 0}</Text>
                                 </View>
                             </View>
@@ -110,28 +111,28 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
 
                         {visit.space && (
                             <BlurView intensity={20} tint="dark" style={[styles.hostCard, { borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)' }]}>
-                                <Text style={[styles.hostHeader, { color: '#10b981' }]}>ASSIGNED PARKING SPACE</Text>
+                                <Text style={[styles.hostHeader, { color: '#10b981' }]}>{t('assignedParkingSpace')}</Text>
                                 <View style={styles.hostRow}>
                                     <View style={[styles.hostAvatar, { backgroundColor: '#10b981' }]}>
                                         <Ionicons name="car" size={20} color="#ffffff" />
                                     </View>
                                     <View>
                                         <Text style={styles.hostName}>{visit.space.name}</Text>
-                                        <Text style={styles.hostEmail}>Guide the guest to this spot</Text>
+                                        <Text style={styles.hostEmail}>{t('parkingGuide')}</Text>
                                     </View>
                                 </View>
                             </BlurView>
                         )}
 
                         <BlurView intensity={20} tint="dark" style={styles.hostCard}>
-                            <Text style={styles.hostHeader}>AUTHORIZED BY (HOST)</Text>
+                            <Text style={styles.hostHeader}>{t('authorizedByHost')}</Text>
                             <View style={styles.hostRow}>
                                 <View style={styles.hostAvatar}>
                                     <Ionicons name="person" size={20} color="#ffffff" />
                                 </View>
                                 <View>
-                                    <Text style={styles.hostName}>{visit.host?.name || 'Authorized'}</Text>
-                                    <Text style={styles.hostEmail}>{visit.host?.email || 'Resident'}</Text>
+                                    <Text style={styles.hostName}>{visit.host?.name || t('authorized')}</Text>
+                                    <Text style={styles.hostEmail}>{visit.host?.email || t('resident')}</Text>
                                 </View>
                             </View>
                         </BlurView>
@@ -139,12 +140,12 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                         <View style={styles.metaInfo}>
                             <View style={styles.metaRow}>
                                 <Ionicons name="calendar-outline" size={16} color="#64748b" />
-                                <Text style={styles.metaText}>Created: {new Date(visit.createdAt).toLocaleString()}</Text>
+                                <Text style={styles.metaText}>{t('created')}: {new Date(visit.createdAt).toLocaleString()}</Text>
                             </View>
                             {visit.entryTime && (
                                 <View style={styles.metaRow}>
                                     <Ionicons name="log-in-outline" size={16} color="#10b981" />
-                                    <Text style={styles.metaText}>Entry: {new Date(visit.entryTime).toLocaleString()}</Text>
+                                    <Text style={styles.metaText}>{t('entry')}: {new Date(visit.entryTime).toLocaleString()}</Text>
                                 </View>
                             )}
                         </View>

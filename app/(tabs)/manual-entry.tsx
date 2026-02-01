@@ -1,16 +1,16 @@
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView, Image, TouchableOpacity, Modal, FlatList, ActivityIndicator } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { BlurView } from 'expo-blur';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import axios from 'axios';
-import * as ImagePicker from 'expo-image-picker';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { API_URL } from '@/constants/api';
-import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { API_URL } from '@/constants/api';
+import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
 
 export default function ManualEntryScreen() {
@@ -72,15 +72,23 @@ export default function ManualEntryScreen() {
     };
 
     const pickImage = async () => {
+        if (!Platform.OS.match(/web/)) {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert(t('cameraAccessRequired'), t('cameraPermissionText'));
+                return;
+            }
+        }
+
         const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [4, 3],
-            quality: 0.5,
+            quality: 0.7,
             base64: true,
         });
 
-        if (!result.canceled) {
+        if (!result.canceled && result.assets && result.assets.length > 0) {
             setImage('data:image/jpeg;base64,' + result.assets[0].base64);
         }
     };

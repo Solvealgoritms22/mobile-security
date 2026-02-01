@@ -1,9 +1,9 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { View, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useTranslation } from '@/context/translation-context';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Tabs } from 'expo-router';
+import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -78,8 +78,8 @@ export default function TabLayout() {
                 shadowOpacity: 0.6,
                 shadowRadius: 16,
                 elevation: 12,
-                borderWidth: 3,
-                borderColor: 'rgba(15, 23, 42, 0.5)',
+                borderWidth: 4,
+                borderColor: '#1e293b',
               }}>
               <LinearGradient
                 colors={['#3b82f6', '#2563eb', '#1d4ed8']}
