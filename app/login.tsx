@@ -1,10 +1,10 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/context/auth-context';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useTranslation } from '@/context/translation-context';
 

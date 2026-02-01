@@ -36,6 +36,7 @@ const translations: Record<Language, Record<string, string>> = {
         cancel: 'Cancel',
         version: 'Version',
         soon: 'SOON',
+        arrivalAlerts: 'Arrival Alerts',
 
         // Home
         securityDashboard: 'Security Dashboard',
@@ -261,6 +262,7 @@ const translations: Record<Language, Record<string, string>> = {
         cancel: 'Cancelar',
         version: 'Versión',
         soon: 'PRONTO',
+        arrivalAlerts: 'Alertas de Llegada',
 
         // Home
         securityDashboard: 'Panel de Seguridad',
