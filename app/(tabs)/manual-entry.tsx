@@ -31,6 +31,7 @@ export default function ManualEntryScreen() {
     const [spaces, setSpaces] = useState<any[]>([]);
     const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [category, setCategory] = useState<string>('FAMILIAR');
 
     React.useEffect(() => {
         fetchResidents();
@@ -112,6 +113,7 @@ export default function ManualEntryScreen() {
                 images: image ? JSON.stringify([image]) : JSON.stringify([]),
                 hostId: selectedResident?.id,
                 residentId: selectedResident?.id,
+                category,
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -125,8 +127,8 @@ export default function ManualEntryScreen() {
             }
 
             Alert.alert(
-                t('accessGranted'),
-                successMsg,
+                t('awaitingApproval'),
+                t('manualEntryPending'),
                 [{
                     text: 'OK', onPress: () => {
                         refreshData();
@@ -193,6 +195,39 @@ export default function ManualEntryScreen() {
                             value={visitorId}
                             onChangeText={setVisitorId}
                         />
+                    </View>
+
+                    <Text style={styles.label}>{t('visitorCategory')}</Text>
+                    <View style={styles.categorySelector}>
+                        {[
+                            { id: 'FAMILIAR', label: t('familiar'), icon: 'people' },
+                            { id: 'CONTRATISTA', label: t('contratista'), icon: 'construct' },
+                            { id: 'EMPLEADO', label: t('empleado'), icon: 'briefcase' },
+                            { id: 'OTRO', label: t('otro'), icon: 'ellipsis-horizontal' },
+                        ].map((cat) => (
+                            <TouchableOpacity
+                                key={cat.id}
+                                style={[
+                                    styles.categoryOption,
+                                    category === cat.id && styles.categoryOptionActive
+                                ]}
+                                onPress={() => setCategory(cat.id)}
+                            >
+                                <BlurView intensity={category === cat.id ? 50 : 20} tint="dark" style={styles.categoryBlur}>
+                                    <Ionicons
+                                        name={cat.icon as any}
+                                        size={18}
+                                        color={category === cat.id ? '#ffffff' : '#94a3b8'}
+                                    />
+                                    <Text style={[
+                                        styles.categoryText,
+                                        category === cat.id && styles.categoryTextActive
+                                    ]}>
+                                        {cat.label}
+                                    </Text>
+                                </BlurView>
+                            </TouchableOpacity>
+                        ))}
                     </View>
 
                     <Text style={styles.label}>{t('licensePlateOptional')}</Text>
@@ -448,6 +483,43 @@ const styles = StyleSheet.create({
     removeImageText: {
         color: '#ef4444',
         fontSize: 14,
+    },
+    // Category Selector
+    categorySelector: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 4,
+        marginBottom: 8,
+    },
+    categoryOption: {
+        flex: 1,
+        minWidth: '45%',
+        height: 50,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    categoryOptionActive: {
+        borderColor: '#3b82f6',
+        borderWidth: 2,
+    },
+    categoryBlur: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingHorizontal: 12,
+    },
+    categoryText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#94a3b8',
+    },
+    categoryTextActive: {
+        color: '#ffffff',
     },
     // Parking Spaces
     spaceSelector: {
