@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { useToast } from '@/components/ui/Toast';
+import { API_URL } from '@/constants/api';
+import { useAuth } from '@/context/auth-context';
+import { useTranslation } from '@/context/translation-context';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { useTranslation } from '@/context/translation-context';
-import { API_URL } from '@/constants/api';
-import axios from 'axios';
-import { useAuth } from '@/context/auth-context';
-import { useToast } from '@/components/ui/Toast';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 interface Comment {
     id: string;
@@ -38,10 +38,37 @@ interface IncidentDetailModalProps {
 
 export function IncidentDetailModal({ visible, onClose, incident, onCommentAdded }: IncidentDetailModalProps) {
     const { t } = useTranslation();
-    const { token } = useAuth();
+    const { token, socket } = useAuth();
     const { showToast } = useToast();
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [displayComments, setDisplayComments] = useState<Comment[]>([]);
+
+    useEffect(() => {
+        if (incident) {
+            setDisplayComments(incident.comments || []);
+        }
+    }, [incident]);
+
+    useEffect(() => {
+        if (!socket || !incident || !visible) return;
+
+        const handleNewComment = (payload: { incidentReportId: string; comment: Comment }) => {
+            if (payload.incidentReportId === incident.id) {
+                setDisplayComments(prev => {
+                    const exists = prev.some(c => c.id === payload.comment.id);
+                    if (exists) return prev;
+                    return [...prev, payload.comment];
+                });
+            }
+        };
+
+        socket.on('commentAdded', handleNewComment);
+
+        return () => {
+            socket.off('commentAdded', handleNewComment);
+        };
+    }, [socket, incident, visible]);
 
     if (!incident) return null;
 
@@ -56,6 +83,8 @@ export function IncidentDetailModal({ visible, onClose, incident, onCommentAdded
                 headers: { Authorization: `Bearer ${token}` }
             });
             setComment('');
+            // No longer need to call onCommentAdded if socket is working
+            // but we keep it for redundancy/sync if needed
             onCommentAdded();
         } catch (error) {
             console.error('Failed to add comment:', error);
@@ -80,6 +109,12 @@ export function IncidentDetailModal({ visible, onClose, incident, onCommentAdded
         const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
         return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
     };
+
+    const DefaultAvatar = () => (
+        <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+            <Ionicons name="person" size={16} color="rgba(255,255,255,0.4)" />
+        </View>
+    );
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
@@ -112,18 +147,25 @@ export function IncidentDetailModal({ visible, onClose, incident, onCommentAdded
 
                         <View style={styles.discussionHeader}>
                             <Ionicons name="chatbubbles-outline" size={20} color="#3b82f6" />
-                            <Text style={styles.discussionTitle}>{t('discussion')} ({incident.comments?.length || 0})</Text>
+                            <Text style={styles.discussionTitle}>{t('discussion')} ({displayComments.length})</Text>
                         </View>
 
                         <View style={styles.commentsList}>
-                            {incident.comments?.map((item) => (
+                            {displayComments.map((item) => (
                                 <View key={item.id} style={styles.commentItem}>
                                     <View style={styles.commentHeader}>
                                         <View style={styles.authorInfo}>
-                                            <Image
-                                                source={item.author.profileImage ? { uri: getImageUrl(item.author.profileImage) } : require('@/assets/images/icon.png')}
-                                                style={styles.avatar}
-                                            />
+                                            {item.author.profileImage ? (
+                                                <Image
+                                                    source={{ uri: getImageUrl(item.author.profileImage) ?? undefined }}
+                                                    style={styles.avatar}
+                                                    contentFit="cover"
+                                                    placeholder={require('@/assets/images/icon.png')}
+                                                    transition={200}
+                                                />
+                                            ) : (
+                                                <DefaultAvatar />
+                                            )}
                                             <View>
                                                 <Text style={styles.authorName}>{item.author.name}</Text>
                                                 <Text style={styles.authorRole}>{item.author.role}</Text>
@@ -137,7 +179,7 @@ export function IncidentDetailModal({ visible, onClose, incident, onCommentAdded
                                 </View>
                             ))}
 
-                            {(!incident.comments || incident.comments.length === 0) && (
+                            {(!displayComments || displayComments.length === 0) && (
                                 <View style={styles.emptyComments}>
                                     <Ionicons name="chatbox-outline" size={40} color="rgba(255,255,255,0.1)" />
                                     <Text style={styles.emptyText}>{t('noComments')}</Text>
@@ -155,6 +197,7 @@ export function IncidentDetailModal({ visible, onClose, incident, onCommentAdded
                                 value={comment}
                                 onChangeText={setComment}
                                 multiline
+                                keyboardType="default"
                             />
                             <Pressable
                                 onPress={handleAddComment}

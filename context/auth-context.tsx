@@ -28,6 +28,7 @@ interface AuthContextType {
     user: User | null;
     token: string | null;
     isLoading: boolean;
+    socket: any | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     updateUser: (partialUser: Partial<User>) => Promise<void>;
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [socket, setSocket] = useState<any>(null);
     const [refreshCallbacks, setRefreshCallbacks] = useState<(() => void)[]>([]);
     const router = useRouter();
     const segments = useSegments();
@@ -84,17 +86,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user, segments, isLoading]);
 
-    // Global Emergency Listener
+    // Global Socket & Emergency Listener
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            if (socket) {
+                socket.disconnect();
+                setSocket(null);
+            }
+            return;
+        }
 
-        const socket = io(API_URL.replace('/api', ''));
+        const newSocket = io(API_URL.replace('/api', ''));
+        setSocket(newSocket);
 
-        socket.on('connect', () => {
+        newSocket.on('connect', () => {
             console.log('Security App connected to socket');
         });
 
-        socket.on('emergencyAlert', (alert: any) => {
+        newSocket.on('emergencyAlert', (alert: any) => {
             console.log('Emergency Alert Received:', alert);
 
             // Trigger high-impact haptics
@@ -110,17 +119,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             );
         });
 
-        socket.on('visitUpdate', (update: any) => {
+        newSocket.on('visitUpdate', (update: any) => {
             console.log('Real-time visit update received:', update);
             refreshData();
         });
 
-        socket.on('newVisit', (visit: any) => {
+        newSocket.on('newVisit', (visit: any) => {
             console.log('New visit received via socket:', visit);
             refreshData();
         });
 
-        socket.on('statusUpdate', (data: any) => {
+        newSocket.on('statusUpdate', (data: any) => {
             console.log('Status update received via socket:', data);
             if (data.type === 'USER_UPDATED' && data.user && data.user.id === user.id) {
                 console.log('Current user updated! Refreshing session...');
@@ -144,7 +153,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         return () => {
-            socket.disconnect();
+            newSocket.disconnect();
+            setSocket(null);
             if (notificationListener) notificationListener.remove();
             if (responseListener) responseListener.remove();
         };
@@ -284,7 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser, updatePushToken, onDataRefresh, refreshData }}>
+        <AuthContext.Provider value={{ user, token, isLoading, socket, login, logout, updateUser, updatePushToken, onDataRefresh, refreshData }}>
             {children}
         </AuthContext.Provider>
     );
