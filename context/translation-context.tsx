@@ -129,6 +129,18 @@ const translations: Record<Language, Record<string, string>> = {
         reportLogged: 'Incident report has been logged',
         selectTypeDescriptionError: 'Please select incident type and provide description',
         submitReportFailed: 'Failed to submit report. Please try again.',
+        reportHistory: 'Incident History',
+        noReportsFound: 'No reports found',
+        viewDiscussion: 'View Discussion',
+        addCommentPlaceholder: 'Add a message or note...',
+        commentedOn: 'commented on',
+        incidentDetails: 'Incident Details',
+        status: 'Status',
+        reporter: 'Reporter',
+        discussion: 'Discussion',
+        noComments: 'No comments yet',
+        type: 'Type',
+
 
         // Emergency
         emergencyConfirmTitle: 'Confirm Emergency',
@@ -359,6 +371,18 @@ const translations: Record<Language, Record<string, string>> = {
         reportLogged: 'El reporte de incidente ha sido registrado',
         selectTypeDescriptionError: 'Por favor seleccione tipo de incidente y provea descripción',
         submitReportFailed: 'Error al enviar reporte. Por favor intente de nuevo.',
+        reportHistory: 'Historial de Incidentes',
+        noReportsFound: 'No se encontraron reportes',
+        viewDiscussion: 'Ver Discusión',
+        addCommentPlaceholder: 'Añadir un mensaje o nota...',
+        commentedOn: 'comentó el',
+        incidentDetails: 'Detalles del Incidente',
+        status: 'Estado',
+        reporter: 'Reportado por',
+        discussion: 'Discusión',
+        noComments: 'Sin comentarios aún',
+        type: 'Tipo',
+
 
         // Emergency
         emergencyConfirmTitle: 'Confirmar Emergencia',
