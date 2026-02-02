@@ -123,10 +123,12 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                                         quietZone={10}
                                     />
                                 </View>
-                                <View style={styles.accessCodeContainer}>
-                                    <Text style={styles.accessCodeLabel}>{t('manualEntryCode')}</Text>
-                                    <Text style={styles.accessCodeValue}>{entryCode || '----'}</Text>
-                                </View>
+                                {entryCode && (
+                                    <View style={styles.accessCodeContainer}>
+                                        <Text style={styles.accessCodeLabel}>{t('manualEntryCode')}</Text>
+                                        <Text style={styles.accessCodeValue}>{entryCode}</Text>
+                                    </View>
+                                )}
                             </View>
                         )}
 
