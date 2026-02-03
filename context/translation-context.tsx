@@ -88,6 +88,7 @@ const translations: Record<Language, Record<string, string>> = {
         assignedResident: 'Assigned Resident',
         scanNext: 'Scan Next',
         cameraMountError: 'Error starting camera',
+        searchVisitors: 'Search Visitors',
 
         // Manual Entry
         visitDestination: 'Visit Destination (Resident) *',
@@ -258,6 +259,7 @@ const translations: Record<Language, Record<string, string>> = {
         visitorCategory: 'Visitor Category',
         awaitingApproval: 'Awaiting Resident Approval',
         manualEntryPending: 'Your entry has been registered and is awaiting approval from the resident.',
+        exit: 'Exit',
     },
     es: {
         // Tabs
@@ -337,6 +339,7 @@ const translations: Record<Language, Record<string, string>> = {
         assignedResident: 'Residente Asignado',
         scanNext: 'Escanear Siguiente',
         cameraMountError: 'Error al iniciar la cámara',
+        searchVisitors: 'Buscar Visitantes',
 
         // Manual Entry
         visitDestination: 'Destino de Visita (Residente) *',
@@ -507,6 +510,7 @@ const translations: Record<Language, Record<string, string>> = {
         visitorCategory: 'Categoría de Visitante',
         awaitingApproval: 'Esperando Aprobación del Residente',
         manualEntryPending: 'Su ingreso ha sido registrado y está a la espera de la aprobación del residente.',
+        exit: 'Salida',
     }
 };
 
