@@ -1,18 +1,19 @@
-import { IncidentDetailModal } from '@/components/IncidentDetailModal';
-import { useToast } from '@/components/ui/Toast';
-import { API_URL } from '@/constants/api';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
+import api from '@/services/api';
+import { visitService } from '@/services/visitService';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { IncidentDetailModal } from '@/components/IncidentDetailModal';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ReportIncidentScreen() {
-    const { token, socket } = useAuth();
+    const { token, socket, onDataRefresh } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
     const { showToast } = useToast();
@@ -22,10 +23,13 @@ export default function ReportIncidentScreen() {
     const [loading, setLoading] = useState(false);
 
     // History states
-    const [reports, setReports] = useState([]);
+    const [reports, setReports] = useState<any[]>([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState<any>(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
 
     const incidentTypes = [
         { id: 'unauthorized', label: t('unauthorizedEntry'), icon: 'ban-outline', color: '#ef4444' },
@@ -34,44 +38,53 @@ export default function ReportIncidentScreen() {
         { id: 'other', label: t('incidentTypeOther'), icon: 'ellipsis-horizontal-circle-outline', color: '#64748b' },
     ];
 
-    const fetchHistory = async () => {
-        setRefreshing(true);
+    const fetchHistory = useCallback(async (pageNum = 1, shouldRefresh = false) => {
+        if (pageNum > 1 && !hasMore && !shouldRefresh) return;
+
+        if (pageNum === 1 && !shouldRefresh) setRefreshing(true);
+        else if (!shouldRefresh) setLoadingMore(true);
+
         try {
-            const response = await axios.get(`${API_URL}/reports/my`, {
-                headers: { Authorization: `Bearer ${token}` }
+            const response = await api.get('/reports/my', {
+                params: { page: pageNum, limit: 10 }
             });
-            setReports(response.data);
+
+            // Handle both array response and paginated response
+            const responseData = response.data.data || response.data;
+            const meta = response.data.meta || { totalPages: 1 };
+
+            if (shouldRefresh || pageNum === 1) {
+                setReports(responseData);
+            } else {
+                setReports(prev => [...prev, ...responseData]);
+            }
+
+            setHasMore(pageNum < meta.totalPages);
+            setPage(pageNum);
         } catch (error) {
             console.error('Failed to fetch reports:', error);
             showToast(t('errorGeneric'), 'error');
         } finally {
             setRefreshing(false);
+            setLoadingMore(false);
         }
-    };
+    }, [hasMore, t, showToast]);
 
     useEffect(() => {
         if (activeTab === 'history') {
-            fetchHistory();
+            fetchHistory(1, true);
         }
-    }, [activeTab]);
+    }, [activeTab, fetchHistory]);
 
     useEffect(() => {
-        if (!socket) return;
-
-        const handleRefresh = () => {
+        const unsubscribe = onDataRefresh(() => {
             if (activeTab === 'history') {
-                fetchHistory();
+                fetchHistory(1, true);
             }
-        };
+        });
 
-        socket.on('incidentCreated', handleRefresh);
-        socket.on('incidentStatusUpdated', handleRefresh);
-
-        return () => {
-            socket.off('incidentCreated', handleRefresh);
-            socket.off('incidentStatusUpdated', handleRefresh);
-        };
-    }, [socket, activeTab]);
+        return unsubscribe;
+    }, [onDataRefresh, activeTab, fetchHistory]);
 
     const handleSubmit = async () => {
         if (!incidentType || !description) {
@@ -81,120 +94,167 @@ export default function ReportIncidentScreen() {
 
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/reports`, {
+            await api.post('/reports', {
                 type: incidentType,
-                description
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                description,
+                location: 'Main Entrance'
             });
 
-            Alert.alert(
-                t('reportSubmitted'),
-                t('reportLogged'),
-                [{
-                    text: 'OK', onPress: () => {
-                        setIncidentType('');
-                        setDescription('');
-                        setActiveTab('history');
-                    }
-                }]
-            );
+            showToast(t('reportSubmitted'), 'success');
+            setIncidentType('');
+            setDescription('');
+            setActiveTab('history');
+            fetchHistory(1, true);
         } catch (error) {
             console.error('Failed to submit report:', error);
-            Alert.alert('Error', t('submitReportFailed'));
+            showToast(t('submitReportFailed'), 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const renderNewReport = () => (
-        <View style={styles.tabContent}>
-            <Text style={styles.sectionTitle}>{t('sectionIncidentType')}</Text>
-            <View style={styles.typesGrid}>
-                {incidentTypes.map((type) => (
-                    <Pressable
-                        key={type.id}
-                        onPress={() => setIncidentType(type.id)}
-                        style={styles.typeButton}
-                    >
-                        <BlurView
-                            intensity={incidentType === type.id ? 40 : 30}
-                            tint="dark"
-                            style={[
-                                styles.typeCard,
-                                incidentType === type.id && styles.typeCardActive,
-                            ]}
-                        >
-                            {incidentType === type.id && (
-                                <LinearGradient
-                                    colors={[`${type.color}30`, `${type.color}10`]}
-                                    style={StyleSheet.absoluteFill}
-                                />
-                            )}
-                            <View style={[styles.typeIcon, { backgroundColor: `${type.color}30` }]}>
-                                <Ionicons name={type.icon as any} size={28} color={type.color} />
-                            </View>
-                            <Text style={styles.typeLabel}>{type.label}</Text>
-                            {incidentType === type.id && (
-                                <View style={styles.checkmark}>
-                                    <Ionicons name="checkmark-circle" size={20} color={type.color} />
-                                </View>
-                            )}
-                        </BlurView>
-                    </Pressable>
-                ))}
+    const getStatusColor = (status: string) => {
+        switch (status?.toUpperCase()) {
+            case 'OPEN': return '#ef4444';
+            case 'INVESTIGATING': return '#f59e0b';
+            case 'RESOLVED': return '#10b981';
+            default: return '#64748b';
+        }
+    };
+
+    return (
+        <LinearGradient colors={['#0f172a', '#1e293b', '#334155']} style={styles.container}>
+            <View style={styles.header}>
+                <Pressable onPress={() => router.back()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#ffffff" />
+                </Pressable>
+                <Text style={styles.title}>{t('reportIncident')}</Text>
+                <View style={{ width: 40 }} />
             </View>
 
-            <Text style={styles.sectionTitle}>{t('sectionDescription')}</Text>
-            <BlurView intensity={30} tint="dark" style={styles.descriptionCard}>
-                <TextInput
-                    style={styles.textArea}
-                    placeholder={t('describeIncidentPlaceholder')}
-                    placeholderTextColor="#64748b"
-                    value={description}
-                    onChangeText={setDescription}
-                    multiline
-                    numberOfLines={6}
-                    textAlignVertical="top"
-                />
-            </BlurView>
-
-            <Pressable onPress={handleSubmit} disabled={loading} style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}>
-                <LinearGradient
-                    colors={['#ef4444', '#dc2626', '#b91c1c']}
-                    style={styles.submitButton}
+            <View style={styles.tabsContainer}>
+                <Pressable
+                    onPress={() => setActiveTab('new')}
+                    style={[styles.tab, activeTab === 'new' && styles.activeTab]}
                 >
-                    {loading ? (
-                        <ActivityIndicator color="#ffffff" />
-                    ) : (
-                        <>
-                            <Ionicons name="alert-circle-outline" size={24} color="#ffffff" />
-                            <Text style={styles.submitText}>{t('submitReport')}</Text>
-                        </>
-                    )}
-                </LinearGradient>
-            </Pressable>
-        </View>
-    );
+                    <Text style={[styles.tabText, activeTab === 'new' && styles.activeTabText]}>{t('reportIncident')}</Text>
+                </Pressable>
+                <Pressable
+                    onPress={() => setActiveTab('history')}
+                    style={[styles.tab, activeTab === 'history' && styles.activeTab]}
+                >
+                    <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>{t('reportHistory')}</Text>
+                </Pressable>
+            </View>
 
-    const renderHistory = () => (
-        <View style={styles.tabContent}>
-            {reports.length > 0 ? (
-                reports.map((item: any) => {
-                    const getStatusColor = (status: string) => {
-                        switch (status?.toUpperCase()) {
-                            case 'OPEN': return '#ef4444';
-                            case 'INVESTIGATING': return '#f59e0b';
-                            case 'RESOLVED': return '#10b981';
-                            default: return '#64748b';
-                        }
-                    };
+            {activeTab === 'new' ? (
+                <FlatList
+                    data={[]}
+                    ListHeaderComponent={
+                        <View style={styles.tabContent}>
+                            <Text style={styles.sectionTitle}>{t('sectionIncidentType')}</Text>
+                            <View style={styles.typesGrid}>
+                                {incidentTypes.map((type) => (
+                                    <Pressable
+                                        key={type.id}
+                                        onPress={() => setIncidentType(type.id)}
+                                        style={styles.typeButton}
+                                    >
+                                        <BlurView
+                                            intensity={incidentType === type.id ? 40 : 30}
+                                            tint="dark"
+                                            style={[
+                                                styles.typeCard,
+                                                incidentType === type.id && styles.typeCardActive,
+                                            ]}
+                                        >
+                                            {incidentType === type.id && (
+                                                <LinearGradient
+                                                    colors={[`${type.color}30`, `${type.color}10`]}
+                                                    style={StyleSheet.absoluteFill}
+                                                />
+                                            )}
+                                            <View style={[styles.typeIcon, { backgroundColor: `${type.color}30` }]}>
+                                                <Ionicons name={type.icon as any} size={28} color={type.color} />
+                                            </View>
+                                            <Text style={styles.typeLabel}>{type.label}</Text>
+                                            {incidentType === type.id && (
+                                                <View style={styles.checkmark}>
+                                                    <Ionicons name="checkmark-circle" size={20} color={type.color} />
+                                                </View>
+                                            )}
+                                        </BlurView>
+                                    </Pressable>
+                                ))}
+                            </View>
 
-                    return (
+                            <Text style={styles.sectionTitle}>{t('sectionDescription')}</Text>
+                            <BlurView intensity={30} tint="dark" style={styles.descriptionCard}>
+                                <TextInput
+                                    style={styles.textArea}
+                                    placeholder={t('describeIncidentPlaceholder')}
+                                    placeholderTextColor="#64748b"
+                                    value={description}
+                                    onChangeText={setDescription}
+                                    multiline
+                                    numberOfLines={6}
+                                    textAlignVertical="top"
+                                />
+                            </BlurView>
+
+                            <Pressable onPress={handleSubmit} disabled={loading} style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}>
+                                <LinearGradient
+                                    colors={['#ef4444', '#dc2626', '#b91c1c']}
+                                    style={styles.submitButton}
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color="#ffffff" />
+                                    ) : (
+                                        <>
+                                            <Ionicons name="alert-circle-outline" size={24} color="#ffffff" />
+                                            <Text style={styles.submitText}>{t('submitReport')}</Text>
+                                        </>
+                                    )}
+                                </LinearGradient>
+                            </Pressable>
+                        </View>
+                    }
+                    renderItem={null}
+                    contentContainerStyle={styles.content}
+                />
+            ) : (
+                <FlatList
+                    data={reports}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.content}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={() => fetchHistory(1, true)}
+                            tintColor="#ffffff"
+                        />
+                    }
+                    onEndReached={() => {
+                        if (!loadingMore && hasMore) fetchHistory(page + 1);
+                    }}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={
+                        loadingMore ? (
+                            <View style={{ paddingVertical: 20 }}>
+                                <ActivityIndicator color="#3b82f6" />
+                            </View>
+                        ) : null
+                    }
+                    ListEmptyComponent={
+                        !refreshing ? (
+                            <View style={styles.emptyContainer}>
+                                <Ionicons name="document-text-outline" size={48} color="rgba(255,255,255,0.1)" />
+                                <Text style={styles.emptyText}>{t('noReportsFound')}</Text>
+                            </View>
+                        ) : null
+                    }
+                    renderItem={({ item }) => (
                         <Pressable
-                            key={item.id}
                             style={styles.reportItemContainer}
                             onPress={() => {
                                 setSelectedIncident(item);
@@ -222,64 +282,15 @@ export default function ReportIncidentScreen() {
                                 </View>
                             </BlurView>
                         </Pressable>
-                    );
-                })
-            ) : refreshing ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#3b82f6" />
-                </View>
-            ) : (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="document-text-outline" size={48} color="rgba(255,255,255,0.1)" />
-                    <Text style={styles.emptyText}>{t('noReportsFound')}</Text>
-                </View>
+                    )}
+                />
             )}
-        </View>
-    );
-
-    return (
-        <LinearGradient colors={['#0f172a', '#1e293b', '#334155']} style={styles.container}>
-            <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#ffffff" />
-                </Pressable>
-                <Text style={styles.title}>{t('reportIncident')}</Text>
-                <View style={{ width: 40 }} />
-            </View>
-
-            <View style={styles.tabsContainer}>
-                <Pressable
-                    onPress={() => setActiveTab('new')}
-                    style={[styles.tab, activeTab === 'new' && styles.activeTab]}
-                >
-                    <Text style={[styles.tabText, activeTab === 'new' && styles.activeTabText]}>{t('reportIncident')}</Text>
-                </Pressable>
-                <Pressable
-                    onPress={() => setActiveTab('history')}
-                    style={[styles.tab, activeTab === 'history' && styles.activeTab]}
-                >
-                    <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>{t('reportHistory')}</Text>
-                </Pressable>
-            </View>
-
-            <ScrollView
-                contentContainerStyle={styles.content}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={fetchHistory}
-                        tintColor="#ffffff"
-                    />
-                }
-            >
-                {activeTab === 'new' ? renderNewReport() : renderHistory()}
-            </ScrollView>
 
             <IncidentDetailModal
                 visible={modalVisible}
                 onClose={() => setModalVisible(false)}
                 incident={selectedIncident}
-                onCommentAdded={fetchHistory}
+                onCommentAdded={() => fetchHistory(1, true)}
             />
         </LinearGradient>
     );
@@ -420,7 +431,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#ffffff',
     },
-    // History Styles
     reportItemContainer: {
         marginBottom: 16,
         borderRadius: 24,
@@ -502,8 +512,5 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#64748b',
         fontWeight: '600',
-    },
-    loadingContainer: {
-        paddingVertical: 80,
     },
 });

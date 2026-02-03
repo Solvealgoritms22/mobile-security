@@ -73,9 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 { shouldPlay: true, volume: 1.0 }
             );
 
-            setTimeout(() => {
+            const timeout = setTimeout(() => {
                 sound.unloadAsync();
             }, 10000);
+
+            return timeout;
         } catch (error) {
             console.error('Core: Failed to play emergency sound:', error);
         }
@@ -234,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const login = async (email: string, password: string) => {
+    const login = React.useCallback(async (email: string, password: string) => {
         try {
             const response = await axios.post(`${API_URL}/auth/login`, {
                 email,
@@ -262,9 +264,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             throw error;
         }
-    };
+    }, [router]);
 
-    const logout = async () => {
+    const logout = React.useCallback(async () => {
         try {
             await AsyncStorage.removeItem('authToken');
             await AsyncStorage.removeItem('user');
@@ -279,16 +281,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error('Logout failed:', error);
         }
-    };
+    }, [router]);
 
-    const updateUser = async (partialUser: Partial<User>) => {
-        if (!user) return;
-        const updatedUser = { ...user, ...partialUser };
-        setUser(updatedUser);
-        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-    };
+    const updateUser = React.useCallback(async (partialUser: Partial<User>) => {
+        setUser(prev => {
+            if (!prev) return null;
+            const updated = { ...prev, ...partialUser };
+            AsyncStorage.setItem('user', JSON.stringify(updated));
+            return updated;
+        });
+    }, []);
 
-    const updatePushToken = async (pushToken: string) => {
+    const updatePushToken = React.useCallback(async (pushToken: string) => {
         if (!user || user.pushToken === pushToken) return;
         try {
             await axios.patch(`${API_URL}/users/${user.id}/push-settings`, { pushToken });
@@ -296,16 +300,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error('Failed to update push token on backend:', error);
         }
-    };
+    }, [user, updateUser]);
 
-    const onDataRefresh = (callback: () => void) => {
+    const onDataRefresh = React.useCallback((callback: () => void) => {
         setRefreshCallbacks(prev => [...prev, callback]);
         return () => {
             setRefreshCallbacks(prev => prev.filter(cb => cb !== callback));
         };
-    };
+    }, []);
 
-    const refreshData = () => {
+    const refreshData = React.useCallback(() => {
         console.log('Triggering global data refresh...');
         refreshCallbacks.forEach(cb => {
             try {
@@ -314,10 +318,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.error('Error in refresh callback:', e);
             }
         });
-    };
+    }, [refreshCallbacks]);
+
+    const value = React.useMemo(() => ({
+        user,
+        token,
+        isLoading,
+        socket,
+        login,
+        logout,
+        updateUser,
+        updatePushToken,
+        onDataRefresh,
+        refreshData
+    }), [user, token, isLoading, socket, login, logout, updateUser, updatePushToken, onDataRefresh, refreshData]);
 
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, socket, login, logout, updateUser, updatePushToken, onDataRefresh, refreshData }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

@@ -1,171 +1,189 @@
-import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
+import { Skeleton } from '@/components/ui/Skeleton';
 import { VisitDetailModal } from '@/components/VisitDetailModal';
-import { API_URL } from '@/constants/api';
 import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
+import { visitService } from '@/services/visitService';
+import { getImageUrl, getInitials } from '@/utils/image';
+import { getStatusConfig } from '@/utils/status';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Dimensions, Platform, RefreshControl, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
 export default function ActivityLog() {
   const { t } = useTranslation();
-  const [activities, setActivities] = useState([]);
+  const { onDataRefresh } = useAuth();
+  const [visits, setVisits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchActivities = async () => {
+  const fetchVisits = useCallback(async (pageNum = 1, shouldRefresh = false) => {
+    if (pageNum > 1 && !hasMore && !shouldRefresh) return;
+
+    if (pageNum === 1 && !shouldRefresh) setLoading(true);
+    else if (!shouldRefresh) setLoadingMore(true);
+
     try {
-      let url = `${API_URL}/visits`;
-      if (startDate && endDate) {
-        url += `?startDate=${startDate}&endDate=${endDate}`;
-      }
-      const response = await axios.get(url);
-      setActivities(response.data);
-    } catch (err) {
-      console.error('Error fetching activity log:', err);
-    }
-  };
+      const response = await visitService.getAllVisits(pageNum, 15);
 
-  const { onDataRefresh } = useAuth();
+      if (shouldRefresh || pageNum === 1) {
+        setVisits(response.data);
+      } else {
+        setVisits(prev => [...prev, ...response.data]);
+      }
+
+      setHasMore(pageNum < response.meta.totalPages);
+      setPage(pageNum);
+    } catch (err) {
+      console.error('Error fetching mobile security visits (explore):', err);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      setRefreshing(false);
+    }
+  }, [hasMore]);
 
   useEffect(() => {
-    fetchActivities();
-    const unsubscribe = onDataRefresh(() => {
-      fetchActivities();
-    });
+    fetchVisits();
+    const unsubscribe = onDataRefresh(() => fetchVisits(1, true));
     return unsubscribe;
-  }, []);
+  }, [onDataRefresh, fetchVisits]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchActivities();
+    await fetchVisits(1, true);
     setRefreshing(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'CHECKED_IN': return '#10b981';
-      case 'CHECKED_OUT': return '#94a3b8';
-      case 'PENDING': return '#f59e0b';
-      default: return '#64748b';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'CHECKED_IN': return 'checkmark-circle';
-      case 'CHECKED_OUT': return 'exit-outline';
-      case 'PENDING': return 'time-outline';
-      default: return 'alert-circle-outline';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'CHECKED_IN': return t('statusCheckedIn');
-      case 'CHECKED_OUT': return t('statusCheckedOut');
-      case 'PENDING': return t('statusPending');
-      default: return status;
-    }
-  };
+  const filteredVisits = visits.filter((v: any) =>
+    (v.visitorName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (v.licensePlate || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <LinearGradient colors={['#0f172a', '#1e293b', '#334155']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('activityLog')}</Text>
-        <Text style={styles.subtitle}>{t('totalEntries').replace('{count}', activities.length.toString())}</Text>
+        <Text style={styles.subtitle}>{t('totalEntries').replace('{count}', visits.length.toString())}</Text>
       </View>
 
       <View style={styles.filterContainer}>
         <View style={styles.dateInputContainer}>
-          <Text style={styles.dateLabel}>{t('startDate')}</Text>
+          <Text style={styles.dateLabel}>{t('search')}</Text>
           <TextInput
             style={styles.dateInput}
-            placeholder="YYYY-MM-DD"
+            placeholder={t('searchVisitors')}
             placeholderTextColor="#64748b"
-            value={startDate}
-            onChangeText={setStartDate}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
         </View>
-        <View style={styles.dateInputContainer}>
-          <Text style={styles.dateLabel}>{t('endDate')}</Text>
-          <TextInput
-            style={styles.dateInput}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#64748b"
-            value={endDate}
-            onChangeText={setEndDate}
-          />
-        </View>
-        <TouchableOpacity style={styles.filterButton} onPress={fetchActivities}>
-          <Ionicons name="filter" size={20} color="#ffffff" />
+        <TouchableOpacity style={styles.filterButton} onPress={() => fetchVisits(1, true)}>
+          <Ionicons name="search" size={20} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
-        }
-      >
-        {activities.length > 0 ? (
-          activities.map((activity: any) => (
+      {loading && visits.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          {[...Array(5)].map((_, i) => (
+            <BlurView key={i} intensity={30} tint="dark" style={styles.activityCard}>
+              <Skeleton height={20} width="60%" />
+              <View style={{ marginTop: 8 }}>
+                <Skeleton height={14} width="40%" />
+              </View>
+            </BlurView>
+          ))}
+        </View>
+      ) : (
+        <FlatList
+          data={filteredVisits}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
+          }
+          onEndReached={() => {
+            if (!loadingMore && hasMore) fetchVisits(page + 1);
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator color="#3b82f6" />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            !loading ? (
+              <View style={styles.emptyState}>
+                <BlurView intensity={40} tint="dark" style={styles.emptyBlur}>
+                  <Ionicons name="people-outline" size={64} color="#64748b" />
+                  <Text style={styles.emptyTitle}>{t('noVisitorsFound')}</Text>
+                  <Text style={styles.emptyText}>{t('adjustFilterHint')}</Text>
+                </BlurView>
+              </View>
+            ) : null
+          }
+          renderItem={({ item: visit }) => (
             <TouchableOpacity
-              key={activity.id}
-              activeOpacity={0.7}
               onPress={() => {
-                setSelectedVisit(activity);
+                setSelectedVisit(visit);
                 setModalVisible(true);
               }}
             >
-              <BlurView intensity={30} tint="dark" style={styles.activityCard}>
+              <BlurView intensity={40} tint="dark" style={styles.visitorCard}>
                 <View style={styles.cardHeader}>
-                  <View style={[styles.statusIcon, { backgroundColor: `${getStatusColor(activity.status)}20` }]}>
-                    <Ionicons
-                      name={getStatusIcon(activity.status)}
-                      size={24}
-                      color={getStatusColor(activity.status)}
-                    />
+                  <View style={styles.avatarContainer}>
+                    {visit.visitor?.avatar ? (
+                      <Image
+                        source={{ uri: getImageUrl(visit.visitor.avatar) || '' }}
+                        style={styles.avatar}
+                      />
+                    ) : (
+                      <View style={styles.initialsAvatar}>
+                        <Text style={styles.initialsText}>{getInitials(visit.visitorName)}</Text>
+                      </View>
+                    )}
+                    <View style={[styles.statusDot, { backgroundColor: getStatusConfig(visit.status).color }]} />
                   </View>
                   <View style={styles.cardInfo}>
-                    <Text style={styles.visitorName}>{activity.visitorName || t('guest')}</Text>
-                    <Text style={styles.visitorMeta}>
-                      {activity.licensePlate || t('noVehicle')} • Host: {activity.host?.name || t('na')}
-                    </Text>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.visitorName}>{visit.visitorName}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: `${getStatusConfig(visit.status).color}20`, borderColor: `${getStatusConfig(visit.status).color}40` }]}>
+                        <Text style={[styles.statusText, { color: getStatusConfig(visit.status).color }]}>{t(visit.status?.toLowerCase())}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.hostInfo}>{t('host')}: {visit.host?.name}</Text>
+                    <View style={styles.metaRow}>
+                      <View style={styles.metaItem}>
+                        <Ionicons name="car" size={14} color="#64748b" />
+                        <Text style={styles.metaText}>{visit.licensePlate || 'N/A'}</Text>
+                      </View>
+                      <View style={styles.metaItem}>
+                        <Ionicons name="time" size={14} color="#64748b" />
+                        <Text style={styles.metaText}>
+                          {new Date(visit.validFrom).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(activity.status)}20` }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(activity.status) }]}>
-                      {getStatusText(activity.status)}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.cardFooter}>
-                  <View style={styles.timeInfo}>
-                    <Ionicons name="time-outline" size={14} color="#94a3b8" />
-                    <Text style={styles.timeText}>
-                      {new Date(activity.createdAt).toLocaleDateString()} • {new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.2)" />
                 </View>
               </BlurView>
             </TouchableOpacity>
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <BlurView intensity={40} tint="dark" style={styles.emptyBlur}>
-              <Ionicons name="document-text-outline" size={64} color="#64748b" />
-              <Text style={styles.emptyTitle}>{t('noActivityFound')}</Text>
-              <Text style={styles.emptyText}>{t('adjustFilters')}</Text>
-            </BlurView>
-          </View>
-        )}
-      </ScrollView>
+          )}
+        />
+      )}
 
       <VisitDetailModal
         visible={modalVisible}
@@ -204,6 +222,10 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingBottom: 100,
   },
+  loadingContainer: {
+    padding: 24,
+    gap: 16,
+  },
   activityCard: {
     borderRadius: 20,
     padding: 20,
@@ -211,40 +233,94 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
   },
+  visitorCard: {
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
+    gap: 16,
   },
-  statusIcon: {
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
+  },
+  initialsAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  initialsText: {
+    color: '#3b82f6',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  statusDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#1e293b',
   },
   cardInfo: {
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   visitorName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 2,
-  },
-  visitorMeta: {
-    fontSize: 12,
-    color: '#94a3b8',
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  statCardSkeleton: {
-    flex: 1,
-    borderRadius: 16,
+  statusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  hostInfo: {
+    fontSize: 13,
+    color: '#94a3b8',
+    marginBottom: 8,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#64748b',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -279,34 +355,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-  },
-  cardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
-    paddingTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#94a3b8',
-  },
-  qrIndicator: {
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -333,4 +381,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
   },
+  cardFooter: {
+    marginTop: 8
+  }
 });

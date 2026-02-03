@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { getImageUrl, getInitials } from '@/utils/image';
+import { getStatusConfig } from '@/utils/status';
 
 export default function SecurityDashboard() {
   const router = useRouter();
@@ -229,13 +231,6 @@ export default function SecurityDashboard() {
             </View>
           ) : recentActivity.length > 0 ? (
             recentActivity.map((visitor: any, index) => {
-              const getStatusConfig = (status: string) => {
-                const s = status?.toUpperCase();
-                if (s === 'CHECKED_IN' || s === 'APPROVED') return { icon: 'checkmark', color: '#10b981' };
-                if (s === 'CHECKED_OUT') return { icon: 'log-out', color: '#3b82f6' };
-                if (s === 'PENDING') return { icon: 'time-outline', color: '#f59e0b' };
-                return { icon: 'close', color: '#ef4444' };
-              };
               const config = getStatusConfig(visitor.status);
 
               return (
@@ -256,7 +251,7 @@ export default function SecurityDashboard() {
                     <Text style={styles.activitySubtitle}>{visitor.visitorIdNumber || visitor.idNumber || 'N/A'}</Text>
                   </View>
                   <Text style={styles.activityTime}>
-                    {new Date(visitor.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(visitor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                 </TouchableOpacity>
               );
