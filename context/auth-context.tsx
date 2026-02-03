@@ -1,6 +1,7 @@
 import { API_URL } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Audio } from 'expo-av';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
@@ -58,7 +59,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const segments = useSegments();
 
-    // Restore session on app load
+    // Global Socket & Emergency Listener
+    const playEmergencySound = async () => {
+        try {
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+                staysActiveInBackground: true,
+                playThroughEarpieceAndroid: false,
+            });
+
+            const { sound } = await Audio.Sound.createAsync(
+                require('../assets/sounds/alarm.mp3'),
+                { shouldPlay: true, volume: 1.0 }
+            );
+
+            setTimeout(() => {
+                sound.unloadAsync();
+            }, 10000);
+        } catch (error) {
+            console.error('Core: Failed to play emergency sound:', error);
+        }
+    };
+
     useEffect(() => {
         restoreSession();
     }, []);
@@ -106,7 +128,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         newSocket.on('emergencyAlert', (alert: any) => {
             console.log('Emergency Alert Received:', alert);
 
-            // Trigger high-impact haptics
+            // Trigger sound and high-impact haptics
+            playEmergencySound();
             if (Platform.OS !== 'web') {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             }

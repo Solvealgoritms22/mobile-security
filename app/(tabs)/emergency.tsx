@@ -1,13 +1,14 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import axios from 'axios';
+import { useToast } from '@/components/ui/Toast';
 import { API_URL } from '@/constants/api';
 import { useAuth } from '@/context/auth-context';
-import { useToast } from '@/components/ui/Toast';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { Audio } from 'expo-av';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useTranslation } from '@/context/translation-context';
 
@@ -17,6 +18,18 @@ export default function EmergencyAlertScreen() {
     const { showToast } = useToast();
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
+
+    const playAlertTriggeredSound = async () => {
+        try {
+            const { sound } = await Audio.Sound.createAsync(
+                require('../../assets/alarm.mp3'),
+                { shouldPlay: true, volume: 1.0 }
+            );
+            setTimeout(() => { sound.unloadAsync(); }, 5000);
+        } catch (e) {
+            console.error('Screen: Failed to play sound', e);
+        }
+    };
 
     const handleQuickAlert = (type: string, localizedType?: string) => {
         const displayType = localizedType || type;
@@ -51,6 +64,8 @@ export default function EmergencyAlertScreen() {
                     Authorization: `Bearer ${token}`
                 }
             });
+
+            playAlertTriggeredSound();
 
             showToast(t('alertActive').replace('{type}', displayType), 'success');
             router.back();
