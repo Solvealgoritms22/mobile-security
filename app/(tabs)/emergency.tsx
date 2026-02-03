@@ -22,7 +22,7 @@ export default function EmergencyAlertScreen() {
     const playAlertTriggeredSound = async () => {
         try {
             const { sound } = await Audio.Sound.createAsync(
-                require('../../assets/alarm.mp3'),
+                require('../../assets/sounds/alarm.mp3'),
                 { shouldPlay: true, volume: 1.0 }
             );
             setTimeout(() => { sound.unloadAsync(); }, 5000);
