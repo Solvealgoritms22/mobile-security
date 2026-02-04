@@ -24,7 +24,7 @@ export default function SecurityDashboard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const getImageUrl = (path?: string) => {
+  const getImageUrl = (path?: string, bustCache = false) => {
     if (!path) return null;
     if (path.startsWith('http') || path.startsWith('data:')) return path;
 
@@ -36,7 +36,11 @@ export default function SecurityDashboard() {
       normalizedPath = '/' + normalizedPath;
     }
 
-    return `${baseUrl}${normalizedPath}?t=${Date.now()}`;
+    let url = `${baseUrl}${normalizedPath}`;
+    if (bustCache) {
+      url += (url.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+    }
+    return url;
   };
 
   const getInitials = (name: string) => {

@@ -311,15 +311,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
+    const refreshTimeoutRef = React.useRef<any>(null);
+
     const refreshData = React.useCallback(() => {
-        console.log('Triggering global data refresh...');
-        refreshCallbacks.forEach(cb => {
-            try {
-                cb();
-            } catch (e) {
-                console.error('Error in refresh callback:', e);
-            }
-        });
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+        }
+
+        refreshTimeoutRef.current = setTimeout(() => {
+            console.log('Triggering global data refresh (debounced)...');
+            refreshCallbacks.forEach(cb => {
+                try {
+                    cb();
+                } catch (e) {
+                    console.error('Error in refresh callback:', e);
+                }
+            });
+            refreshTimeoutRef.current = null;
+        }, 500); // Wait 500ms for other events before refreshing
     }, [refreshCallbacks]);
 
     const value = React.useMemo(() => ({
