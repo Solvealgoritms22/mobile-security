@@ -128,7 +128,7 @@ export default function ManualEntryScreen() {
 
             Alert.alert(
                 t('awaitingApproval'),
-                `${t('manualEntryPending')}\n\n${t('manualEntryCode')}: ${response.data.accessCode}`,
+                t('manualEntryPending'),
                 [{
                     text: 'OK', onPress: () => {
                         refreshData();

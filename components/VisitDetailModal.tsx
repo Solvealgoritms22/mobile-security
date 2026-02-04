@@ -19,7 +19,7 @@ interface VisitDetailModalProps {
 
 export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalProps) => {
     const { t } = useTranslation();
-    const { refreshData } = useAuth();
+    const { refreshData, user } = useAuth();
     const [loading, setLoading] = useState(false);
 
     if (!visit) return null;
@@ -111,8 +111,8 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                             <Text style={[styles.statusLabel, { color: config.color }]}>{config.label}</Text>
                         </View>
 
-                        {/* QR Code Section (if available) */}
-                        {((visit.qrCode || entryCode) && visit.status !== 'CHECKED_OUT') && (
+                        {/* QR Code Section (if available) - HIDDEN for security personnel if it is a manual entry */}
+                        {((visit.qrCode || entryCode) && visit.status !== 'CHECKED_OUT' && !(user?.role === 'SECURITY' && visit.manualEntry)) && (
                             <View style={styles.qrSection}>
                                 <View style={styles.qrContainer}>
                                     <QRCode

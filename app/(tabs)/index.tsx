@@ -3,6 +3,7 @@ import { VisitDetailModal } from '@/components/VisitDetailModal';
 import { API_URL } from '@/constants/api';
 import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
+import { getStatusConfig } from '@/utils/status';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { BlurView } from 'expo-blur';
@@ -11,8 +12,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getImageUrl, getInitials } from '@/utils/image';
-import { getStatusConfig } from '@/utils/status';
 
 export default function SecurityDashboard() {
   const router = useRouter();
@@ -73,7 +72,8 @@ export default function SecurityDashboard() {
           Authorization: `Bearer ${token}`
         }
       });
-      const visits = response.data;
+      // Handle paginated response { data, meta }
+      const visits = response.data.data || response.data;
 
       // Calculate stats
       const today = new Date().toDateString();
