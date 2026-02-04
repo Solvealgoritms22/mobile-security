@@ -16,6 +16,7 @@ const translations: Record<Language, Record<string, string>> = {
         tabScanner: 'Scanner',
         tabReports: 'Reports',
         tabProfile: 'Profile',
+        search: 'Search',
 
         // Profile
         securityOfficer: 'SECURITY OFFICER',
@@ -267,6 +268,7 @@ const translations: Record<Language, Record<string, string>> = {
         tabScanner: 'Escáner',
         tabReports: 'Reportes',
         tabProfile: 'Perfil',
+        search: 'Buscar',
 
         // Profile
         securityOfficer: 'OFICIAL DE SEGURIDAD',

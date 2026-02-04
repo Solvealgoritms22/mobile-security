@@ -32,7 +32,7 @@ export default function ActivityLog() {
     else if (!shouldRefresh) setLoadingMore(true);
 
     try {
-      const response = await visitService.getAllVisits(pageNum, 15);
+      const response = await visitService.getAllVisits(pageNum, 15, undefined, undefined, searchQuery);
 
       if (shouldRefresh || pageNum === 1) {
         setVisits(response.data);
@@ -49,10 +49,17 @@ export default function ActivityLog() {
       setLoadingMore(false);
       setRefreshing(false);
     }
-  }, [hasMore]);
+  }, [hasMore, searchQuery]);
 
   useEffect(() => {
-    fetchVisits();
+    const delayDebounceFn = setTimeout(() => {
+      fetchVisits(1, true);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  useEffect(() => {
     const unsubscribe = onDataRefresh(() => fetchVisits(1, true));
     return unsubscribe;
   }, [onDataRefresh, fetchVisits]);
@@ -62,11 +69,6 @@ export default function ActivityLog() {
     await fetchVisits(1, true);
     setRefreshing(false);
   };
-
-  const filteredVisits = visits.filter((v: any) =>
-    (v.visitorName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (v.licensePlate || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <LinearGradient colors={['#0f172a', '#1e293b', '#334155']} style={styles.container}>
@@ -104,7 +106,7 @@ export default function ActivityLog() {
         </View>
       ) : (
         <FlatList
-          data={filteredVisits}
+          data={visits}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}

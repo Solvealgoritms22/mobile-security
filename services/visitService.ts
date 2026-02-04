@@ -18,10 +18,11 @@ export const visitService = {
         return response.data;
     },
 
-    getAllVisits: async (page: number = 1, limit: number = 10, startDate?: string, endDate?: string) => {
+    getAllVisits: async (page: number = 1, limit: number = 10, startDate?: string, endDate?: string, search?: string) => {
         const params: any = { page, limit };
         if (startDate) params.startDate = startDate;
         if (endDate) params.endDate = endDate;
+        if (search) params.search = search;
 
         const response = await api.get<PaginatedResponse<any>>('/visits', { params });
         return response.data;
