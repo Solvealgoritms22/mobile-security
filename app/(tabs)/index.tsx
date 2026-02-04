@@ -36,7 +36,7 @@ export default function SecurityDashboard() {
       normalizedPath = '/' + normalizedPath;
     }
 
-    return `${baseUrl}${normalizedPath}`;
+    return `${baseUrl}${normalizedPath}?t=${Date.now()}`;
   };
 
   const getInitials = (name: string) => {

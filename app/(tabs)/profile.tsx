@@ -138,8 +138,11 @@ export default function ProfileScreen() {
 
     const getProfileImage = () => {
         if (!user.profileImage) return `${DEFAULT_AVATAR}${encodeURIComponent(user.name)}`;
-        if (user.profileImage.startsWith('http')) return user.profileImage;
-        return `${API_URL}${user.profileImage}`;
+        if (user.profileImage.startsWith('http')) {
+            const separator = user.profileImage.includes('?') ? '&' : '?';
+            return `${user.profileImage}${separator}t=${Date.now()}`;
+        }
+        return `${API_URL}${user.profileImage}?t=${Date.now()}`;
     };
 
     return (
