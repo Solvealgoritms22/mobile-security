@@ -3,6 +3,7 @@ import { VisitDetailModal } from '@/components/VisitDetailModal';
 import { API_URL } from '@/constants/api';
 import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
+import { useBranding } from '@/hooks/useBranding';
 import { getStatusConfig } from '@/utils/status';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -17,6 +18,7 @@ export default function SecurityDashboard() {
   const router = useRouter();
   const { t } = useTranslation();
   const { user, token, logout, onDataRefresh } = useAuth();
+  const { primary, logo, isElite } = useBranding();
   const [stats, setStats] = useState({ today: 0, pending: 0, flagged: 0 });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +124,10 @@ export default function SecurityDashboard() {
     { id: 'lpr', icon: 'scan-circle', label: t('lprCheck'), color: '#06b6d4', screen: '/(tabs)/verify-plate' },
   ];
 
+  if (isElite) {
+    actions.push({ id: 'hardware', icon: 'analytics', label: t('hardwareMonitor') || 'Hardware', color: primary, screen: '/hardware' });
+  }
+
   return (
     <LinearGradient colors={['#0f172a', '#1e293b', '#334155']} style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -129,7 +135,8 @@ export default function SecurityDashboard() {
         <BlurView intensity={80} tint="dark" style={styles.headerCard}>
           <View style={styles.headerContent}>
             <View>
-              <Text style={styles.role}>{t('securityOfficer')}</Text>
+              {logo && <Image source={{ uri: logo }} style={{ width: 80, height: 24, marginBottom: 8 }} contentFit="contain" />}
+              <Text style={[styles.role, { color: primary }]}>{t('securityOfficer')}</Text>
               <Text style={styles.userName}>{user?.name || t('officer')}</Text>
               <Text style={styles.badge}>{user?.email}</Text>
             </View>
@@ -144,8 +151,8 @@ export default function SecurityDashboard() {
                 />
               </View>
             ) : (
-              <View style={styles.headerAvatarFallback}>
-                <Text style={styles.avatarText}>{getInitials(user?.name || '')}</Text>
+              <View style={[styles.headerAvatarFallback, { backgroundColor: primary + '20', borderColor: primary }]}>
+                <Text style={[styles.avatarText, { color: primary }]}>{getInitials(user?.name || '')}</Text>
               </View>
             )}
           </View>
@@ -158,7 +165,7 @@ export default function SecurityDashboard() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#3b82f6', '#2563eb', '#1d4ed8']}
+            colors={[primary, primary + 'CC', primary + '99']}
             style={styles.scannerGradient}
           >
             <View style={styles.scannerIcon}>
