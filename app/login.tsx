@@ -3,8 +3,10 @@ import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '@/constants/api';
 
 import { useTranslation } from '@/context/translation-context';
 
@@ -15,6 +17,28 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [brandingLogo, setBrandingLogo] = useState<string | null>(null);
+    const [brandingName, setBrandingName] = useState<string | null>(null);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const tenantId = await AsyncStorage.getItem('tenantId');
+                if (tenantId) {
+                    const res = await fetch(`${API_URL}/tenants/${tenantId}/branding`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.logoUrl) {
+                            setBrandingLogo(`${API_URL}${data.logoUrl}`);
+                        }
+                        if (data.name) {
+                            setBrandingName(data.name);
+                        }
+                    }
+                }
+            } catch { }
+        })();
+    }, []);
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -43,9 +67,13 @@ export default function LoginScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <BlurView intensity={40} tint="dark" style={styles.logoContainer}>
-                        <Ionicons name="shield-checkmark" size={64} color="#3b82f6" />
+                        {brandingLogo ? (
+                            <Image source={{ uri: brandingLogo }} style={{ width: 80, height: 80, borderRadius: 16 }} resizeMode="contain" />
+                        ) : (
+                            <Ionicons name="shield-checkmark" size={64} color="#3b82f6" />
+                        )}
                     </BlurView>
-                    <Text style={styles.title}>{t('securityAccess')}</Text>
+                    <Text style={styles.title}>{brandingName || t('securityAccess')}</Text>
                     <Text style={styles.subtitle}>{t('signInSubtitle')}</Text>
                 </View>
 

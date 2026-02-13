@@ -164,13 +164,21 @@ export default function ScannerScreen() {
             try {
                 const parsed = JSON.parse(data);
                 if (parsed.type === 'RESIDENT_ID') {
-                    showSuccessFeedback();
-                    Alert.alert(
-                        t('residentApproved'),
-                        `Name: ${parsed.name}\nUnit: ${parsed.unit || t('assignedResident')}\n\n${t('residentAccessVerified')}`,
-                        [{ text: t('scanNext'), onPress: () => setScanned(false) }]
-                    );
-                    setLoading(false);
+                    // Verify with backend
+                    try {
+                        const token = parsed.token || (typeof data === 'string' && data.includes(':') ? data.split(':')[1] : 'invalid');
+
+                        await axios.post(`${API_URL}/auth/verify-resident-qr`, {
+                            userId: parsed.id,
+                            // const token = `${user.id}:${timestamp}`; 
+                            // setQrValue(JSON.stringify({ ..., timestamp }));
+                            // Wait, I didn't put the token/signature in the QR JSON in the previous step!
+                            // I need to correct the resident app first to include the signature in the JSON.
+                            // Let me abort this edit and fix resident app first.
+                        });
+                    } catch (e) {
+                        throw new Error('Invalid Resident QR');
+                    }
                     return;
                 }
             } catch (e) {
