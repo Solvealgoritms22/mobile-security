@@ -1,4 +1,4 @@
-import { API_URL } from '@/constants/api';
+import { API_URL, PUSHER_CLUSTER, PUSHER_KEY } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Audio } from 'expo-av';
@@ -7,9 +7,9 @@ import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { useRouter, useSegments } from 'expo-router';
+import Pusher from 'pusher-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Alert, Platform } from 'react-native';
-import { io } from 'socket.io-client';
 
 interface User {
     id: string;
@@ -36,7 +36,8 @@ interface AuthContextType {
     user: User | null;
     token: string | null;
     isLoading: boolean;
-    socket: any | null;
+    pusher: Pusher | null;
+    tenantChannel: any | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     updateUser: (partialUser: Partial<User>) => Promise<void>;
@@ -61,7 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [socket, setSocket] = useState<any>(null);
+    const [pusher, setPusher] = useState<Pusher | null>(null);
+    const [tenantChannel, setTenantChannel] = useState<any>(null);
     const [refreshCallbacks, setRefreshCallbacks] = useState<(() => void)[]>([]);
     const router = useRouter();
     const segments = useSegments();
@@ -117,58 +119,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user, segments, isLoading]);
 
-    // Global Socket & Emergency Listener
+    // Global Real-time (Pusher) Listener
     useEffect(() => {
-        if (!user) {
-            if (socket) {
-                socket.disconnect();
-                setSocket(null);
+        if (!user || !token) {
+            if (pusher) {
+                pusher.disconnect();
+                setPusher(null);
+                setTenantChannel(null);
             }
             return;
         }
 
-        const newSocket = io(API_URL.replace('/api', ''));
-        setSocket(newSocket);
+        console.log('Security Core: Initializing Pusher for tenant:', user.tenantId);
 
-        newSocket.on('connect', () => {
-            console.log('Security App connected to socket');
+        const pusherClient = new Pusher(PUSHER_KEY, {
+            cluster: PUSHER_CLUSTER,
+            authEndpoint: `${API_URL}/pusher/auth`,
+            auth: {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'x-tenant-id': user.tenantId,
+                },
+            },
         });
 
-        newSocket.on('emergencyAlert', (alert: any) => {
-            console.log('Emergency Alert Received:', alert);
+        setPusher(pusherClient);
 
-            // Trigger sound and high-impact haptics
-            playEmergencySound();
-            if (Platform.OS !== 'web') {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            }
+        if (user.tenantId) {
+            // Subscribe to visits channel
+            const visitsChannelName = `private-tenant-${user.tenantId}-visits`;
+            const visitsChannel = pusherClient.subscribe(visitsChannelName);
+            setTenantChannel(visitsChannel);
 
-            Alert.alert(
-                '🚨 EMERGENCY ALERT 🚨',
-                `${alert.type?.toUpperCase()?.replace('_', ' ')}\nLocation: ${alert.location || 'Unknown'}\nReported by: ${alert.sender?.name || 'Unknown'}`,
-                [{ text: 'ACKNOWLEDGE', style: 'destructive' }],
-                { cancelable: false }
-            );
-        });
+            visitsChannel.bind('emergencyAlert', (alert: any) => {
+                console.log('Emergency Alert Received via Pusher:', alert);
+                playEmergencySound();
+                if (Platform.OS !== 'web') {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                }
 
-        newSocket.on('visitUpdate', (update: any) => {
-            console.log('Real-time visit update received:', update);
-            refreshData();
-        });
+                Alert.alert(
+                    '🚨 EMERGENCY ALERT 🚨',
+                    `${alert.type?.toUpperCase()?.replace('_', ' ')}\nLocation: ${alert.location || 'Unknown'}\nReported by: ${alert.sender?.name || 'Unknown'}`,
+                    [{ text: 'ACKNOWLEDGE', style: 'destructive' }],
+                    { cancelable: false }
+                );
+            });
 
-        newSocket.on('newVisit', (visit: any) => {
-            console.log('New visit received via socket:', visit);
-            refreshData();
-        });
+            visitsChannel.bind('visitUpdate', (update: any) => {
+                console.log('Real-time visit update received via Pusher:', update);
+                refreshData();
+            });
 
-        newSocket.on('statusUpdate', (data: any) => {
-            console.log('Status update received via socket:', data);
-            if (data.type === 'USER_UPDATED' && data.user && data.user.id === user.id) {
-                console.log('Current user updated! Refreshing session...');
-                updateUser(data.user);
-            }
-            refreshData();
-        });
+            // Status channel for user updates
+            const statusChannelName = `private-tenant-${user.tenantId}-status`;
+            const statusChannel = pusherClient.subscribe(statusChannelName);
+
+            statusChannel.bind('statusUpdate', (data: any) => {
+                console.log('Status update received via Pusher:', data);
+                if (data.type === 'USER_UPDATED' && data.user && data.user.id === user.id) {
+                    console.log('Current user updated! Refreshing session...');
+                    updateUser(data.user);
+                }
+                refreshData();
+            });
+        }
 
         // Push Notification Listeners (Native Only)
         let notificationListener: any;
@@ -185,12 +200,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         return () => {
-            newSocket.disconnect();
-            setSocket(null);
+            pusherClient.disconnect();
+            setPusher(null);
+            setTenantChannel(null);
             if (notificationListener) notificationListener.remove();
             if (responseListener) responseListener.remove();
         };
-    }, [user]);
+    }, [user, token]);
 
     async function registerForPushNotificationsAsync() {
         let token;
@@ -360,14 +376,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         isLoading,
-        socket,
+        pusher,
+        tenantChannel,
         login,
         logout,
         updateUser,
         updatePushToken,
         onDataRefresh,
         refreshData
-    }), [user, token, isLoading, socket, login, logout, updateUser, updatePushToken, onDataRefresh, refreshData]);
+    }), [user, token, isLoading, pusher, tenantChannel, login, logout, updateUser, updatePushToken, onDataRefresh, refreshData]);
 
     return (
         <AuthContext.Provider value={value}>

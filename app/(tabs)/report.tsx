@@ -1,19 +1,17 @@
-import { Skeleton } from '@/components/ui/Skeleton';
+import { IncidentDetailModal } from '@/components/IncidentDetailModal';
+import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/auth-context';
 import { useTranslation } from '@/context/translation-context';
 import api from '@/services/api';
-import { visitService } from '@/services/visitService';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState, useCallback } from 'react';
-import { ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
-import { IncidentDetailModal } from '@/components/IncidentDetailModal';
-import { useToast } from '@/components/ui/Toast';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function ReportIncidentScreen() {
-    const { token, socket, onDataRefresh } = useAuth();
+    const { token, onDataRefresh } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
     const { showToast } = useToast();
