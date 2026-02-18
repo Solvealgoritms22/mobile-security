@@ -22,7 +22,7 @@ export default function ManualEntryScreen() {
     const [visitorId, setVisitorId] = useState('');
     const [licensePlate, setLicensePlate] = useState('');
     const [companions, setCompanions] = useState('0');
-    const [image, setImage] = useState<string | null>(null);
+    const [image, setImage] = useState<{ uri: string, base64?: string } | null>(null);
     const [loading, setLoading] = useState(false);
     const [residents, setResidents] = useState<any[]>([]);
     const [loadingResidents, setLoadingResidents] = useState(false);
@@ -90,7 +90,10 @@ export default function ManualEntryScreen() {
         });
 
         if (!result.canceled && result.assets && result.assets.length > 0) {
-            setImage('data:image/jpeg;base64,' + result.assets[0].base64);
+            setImage({
+                uri: result.assets[0].uri,
+                base64: result.assets[0].base64 || undefined
+            });
         }
     };
 
@@ -102,6 +105,35 @@ export default function ManualEntryScreen() {
 
         setLoading(true);
         try {
+            let uploadedUrls: string[] = [];
+
+            if (image) {
+                const formData = new FormData();
+                const filename = image.uri.split('/').pop() || 'visit.jpg';
+                const match = /\.(\w+)$/.exec(filename);
+                const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+                if (Platform.OS === 'web') {
+                    const response = await fetch(image.uri);
+                    const blob = await response.blob();
+                    formData.append('file', blob, filename);
+                } else {
+                    formData.append('file', {
+                        uri: image.uri,
+                        name: filename,
+                        type,
+                    } as any);
+                }
+
+                const uploadResponse = await axios.post(`${API_URL}/uploads/visit-attachment`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                uploadedUrls = [uploadResponse.data.url];
+            }
+
             const response = await axios.post(`${API_URL}/visits/manual-checkin`, {
                 visitorName,
                 visitorIdNumber: visitorId,
@@ -110,7 +142,7 @@ export default function ManualEntryScreen() {
                 companionCount: parseInt(companions) || 0,
                 companions: parseInt(companions) || 0,
                 spaceId: selectedSpaceId || undefined,
-                images: image ? JSON.stringify([image]) : JSON.stringify([]),
+                images: JSON.stringify(uploadedUrls),
                 hostId: selectedResident?.id,
                 residentId: selectedResident?.id,
                 category,
@@ -259,7 +291,7 @@ export default function ManualEntryScreen() {
                     <Text style={styles.label}>{t('documentPhoto')}</Text>
                     <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
                         {image ? (
-                            <Image source={{ uri: image }} style={styles.previewImage} />
+                            <Image source={{ uri: image.uri }} style={styles.previewImage} />
                         ) : (
                             <View style={styles.imagePlaceholder}>
                                 <Ionicons name="camera" size={32} color="#3b82f6" />
