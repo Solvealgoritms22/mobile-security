@@ -297,7 +297,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={styles.versionStyle}>{t('version')} 1.2.0 • COSEVI {t('securityOfficer')}</Text>
+                    <Text style={styles.versionStyle}>{t('version')} 1.2.0 • ENTRAR {t('securityOfficer')}</Text>
                 </View>
             </ScrollView>
         </LinearGradient>
