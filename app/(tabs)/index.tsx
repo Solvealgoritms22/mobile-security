@@ -136,7 +136,7 @@ export default function SecurityDashboard() {
           <View style={styles.headerContent}>
             <View>
               {logo && <Image source={{ uri: logo }} style={{ width: 80, height: 24, marginBottom: 8 }} contentFit="contain" />}
-              <Text style={[styles.role, { color: primary }]}>{t('securityOfficer')}</Text>
+              <Text style={[styles.role, { color: '#3b82f6' }]}>{t('securityOfficer')}</Text>
               <Text style={styles.userName}>{user?.name || t('officer')}</Text>
               <Text style={styles.badge}>{user?.email}</Text>
             </View>
