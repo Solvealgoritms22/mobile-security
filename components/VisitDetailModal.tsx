@@ -111,8 +111,8 @@ export const VisitDetailModal = ({ visible, onClose, visit }: VisitDetailModalPr
                             <Text style={[styles.statusLabel, { color: config.color }]}>{config.label}</Text>
                         </View>
 
-                        {/* QR Code Section (if available) - HIDDEN for security personnel if it is a manual entry */}
-                        {((visit.qrCode || entryCode) && visit.status !== 'CHECKED_OUT' && !(user?.role === 'SECURITY' && visit.manualEntry)) && (
+                        {/* QR Code Section (if available) - HIDDEN for security personnel */}
+                        {((visit.qrCode || entryCode) && visit.status !== 'CHECKED_OUT' && user?.role !== 'SECURITY') && (
                             <View style={styles.qrSection}>
                                 <View style={styles.qrContainer}>
                                     <QRCode

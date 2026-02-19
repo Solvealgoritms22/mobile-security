@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function ReportIncidentScreen() {
-    const { token, onDataRefresh } = useAuth();
+    const { token, onDataRefresh, tenantChannel } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
     const { showToast } = useToast();
@@ -57,6 +57,11 @@ export default function ReportIncidentScreen() {
                 setReports(prev => [...prev, ...responseData]);
             }
 
+            if (selectedIncident) {
+                const updated = responseData.find((r: any) => r.id === selectedIncident.id);
+                if (updated) setSelectedIncident(updated);
+            }
+
             setHasMore(pageNum < meta.totalPages);
             setPage(pageNum);
         } catch (error) {
@@ -66,13 +71,13 @@ export default function ReportIncidentScreen() {
             setRefreshing(false);
             setLoadingMore(false);
         }
-    }, [hasMore, t, showToast]);
+    }, [hasMore, t, showToast, selectedIncident]);
 
     useEffect(() => {
         if (activeTab === 'history') {
             fetchHistory(1, true);
         }
-    }, [activeTab, fetchHistory]);
+    }, [activeTab]);
 
     useEffect(() => {
         const unsubscribe = onDataRefresh(() => {
@@ -81,8 +86,21 @@ export default function ReportIncidentScreen() {
             }
         });
 
-        return unsubscribe;
-    }, [onDataRefresh, activeTab, fetchHistory]);
+        if (tenantChannel) {
+            tenantChannel.bind('commentAdded', () => fetchHistory(1, true));
+            tenantChannel.bind('incidentCreated', () => fetchHistory(1, true));
+            tenantChannel.bind('incidentStatusUpdated', () => fetchHistory(1, true));
+        }
+
+        return () => {
+            unsubscribe();
+            if (tenantChannel) {
+                tenantChannel.unbind('commentAdded');
+                tenantChannel.unbind('incidentCreated');
+                tenantChannel.unbind('incidentStatusUpdated');
+            }
+        };
+    }, [onDataRefresh, activeTab, fetchHistory, tenantChannel]);
 
     const handleSubmit = async () => {
         if (!incidentType || !description) {
