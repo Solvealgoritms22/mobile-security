@@ -7,7 +7,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HardwareMonitorScreen() {
     const { token, onDataRefresh } = useAuth();
@@ -54,38 +54,44 @@ export default function HardwareMonitorScreen() {
                 headerTitleStyle: { fontWeight: 'bold' }
             }} />
 
-            <ScrollView contentContainerStyle={styles.content}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Real-time Monitor</Text>
-                    <Text style={styles.subtitle}>Elite Security Infrastructure</Text>
-                </View>
-
-                {events.length === 0 && !loading ? (
-                    <BlurView intensity={40} tint="dark" style={styles.emptyCard}>
-                        <Ionicons name="videocam-off-outline" size={48} color="#64748b" />
-                        <Text style={styles.emptyText}>No events recorded yet</Text>
-                    </BlurView>
-                ) : (
-                    events.map((event, index) => (
-                        <BlurView key={event.id || index} intensity={60} tint="dark" style={styles.eventCard}>
-                            <View style={[styles.iconContainer, { backgroundColor: primary + '20' }]}>
-                                <Ionicons name={getEventIcon(event.type) as any} size={24} color={primary} />
-                            </View>
-                            <View style={styles.eventInfo}>
-                                <Text style={styles.eventType}>{event.type.replace('_', ' ')}</Text>
-                                <Text style={styles.eventDevice}>{event.device?.name || 'Unknown Device'}</Text>
-                                <Text style={styles.eventTime}>
-                                    {new Date(event.createdAt).toLocaleTimeString()}
-                                </Text>
-                            </View>
-                            <View style={styles.statusBadge}>
-                                <View style={styles.pulseDot} />
-                                <Text style={styles.statusText}>LIVE</Text>
-                            </View>
+            <FlatList
+                data={events}
+                keyExtractor={(event, index) => event.id || index.toString()}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                ListHeaderComponent={
+                    <View style={styles.header}>
+                        <Text style={styles.title}>Real-time Monitor</Text>
+                        <Text style={styles.subtitle}>Elite Security Infrastructure</Text>
+                    </View>
+                }
+                ListEmptyComponent={
+                    !loading ? (
+                        <BlurView intensity={40} tint="dark" style={styles.emptyCard}>
+                            <Ionicons name="videocam-off-outline" size={48} color="#64748b" />
+                            <Text style={styles.emptyText}>No events recorded yet</Text>
                         </BlurView>
-                    ))
+                    ) : null
+                }
+                renderItem={({ item: event }) => (
+                    <BlurView intensity={60} tint="dark" style={styles.eventCard}>
+                        <View style={[styles.iconContainer, { backgroundColor: primary + '20' }]}>
+                            <Ionicons name={getEventIcon(event.type) as any} size={24} color={primary} />
+                        </View>
+                        <View style={styles.eventInfo}>
+                            <Text style={styles.eventType}>{event.type.replace('_', ' ')}</Text>
+                            <Text style={styles.eventDevice}>{event.device?.name || 'Unknown Device'}</Text>
+                            <Text style={styles.eventTime}>
+                                {new Date(event.createdAt).toLocaleTimeString()}
+                            </Text>
+                        </View>
+                        <View style={styles.statusBadge}>
+                            <View style={styles.pulseDot} />
+                            <Text style={styles.statusText}>LIVE</Text>
+                        </View>
+                    </BlurView>
                 )}
-            </ScrollView>
+            />
         </LinearGradient>
     );
 }

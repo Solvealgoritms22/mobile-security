@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, StyleSheet, Pressable, Modal } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,70 +47,74 @@ export default function ExpectedVisitorsScreen() {
 
     return (
         <LinearGradient colors={['#0f172a', '#1e293b', '#334155']} style={styles.container}>
-            <ScrollView contentContainerStyle={styles.content}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <Pressable onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#ffffff" />
-                    </Pressable>
-                    <Text style={styles.title}>{t('expectedToday')}</Text>
-                    <View style={{ width: 40 }} />
-                </View>
-
-                <Text style={styles.subtitle}>{t('expectedVisitorsCount').replace('{count}', expectedVisitors.length.toString())}</Text>
-
-                {/* Visitors List */}
-                <View style={styles.list}>
-                    {loading ? (
-                        <Text style={styles.emptyText}>{t('loading')}</Text>
-                    ) : expectedVisitors.length > 0 ? (
-                        expectedVisitors.map((visitor: any) => (
-                            <Pressable
-                                key={visitor.id}
-                                onPress={() => {
-                                    setSelectedVisit(visitor);
-                                    setModalVisible(true);
-                                }}
-                            >
-                                <BlurView intensity={30} tint="dark" style={styles.visitorCard}>
-                                    <View style={styles.cardHeader}>
-                                        <View style={styles.statusBadge}>
-                                            <Ionicons name="time-outline" size={16} color="#f59e0b" />
-                                            <Text style={styles.statusText}>{t('statusPending')}</Text>
-                                        </View>
-                                        <Text style={styles.timeText}>
-                                            {new Date(visitor.validFrom).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </Text>
-                                    </View>
-                                    <Text style={styles.visitorName}>{visitor.visitorName}</Text>
-                                    <View style={styles.detailsRow}>
-                                        <View style={styles.detail}>
-                                            <Ionicons name="card-outline" size={16} color="#94a3b8" />
-                                            <Text style={styles.detailText}>{visitor.visitorIdNumber}</Text>
-                                        </View>
-                                        {visitor.licensePlate && (
-                                            <View style={styles.detail}>
-                                                <Ionicons name="car-outline" size={16} color="#94a3b8" />
-                                                <Text style={styles.detailText}>{visitor.licensePlate}</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <View style={styles.hostInfo}>
-                                        <Ionicons name="person-circle-outline" size={20} color="#64748b" />
-                                        <Text style={styles.hostText}>{t('hostLabel')} {visitor.host?.name || t('unknown')}</Text>
-                                    </View>
-                                </BlurView>
+            <FlatList
+                contentContainerStyle={styles.content}
+                data={expectedVisitors}
+                keyExtractor={(item: any) => item.id}
+                showsVerticalScrollIndicator={false}
+                ListHeaderComponent={
+                    <>
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <Pressable onPress={() => router.back()} style={styles.backButton}>
+                                <Ionicons name="arrow-back" size={24} color="#ffffff" />
                             </Pressable>
-                        ))
+                            <Text style={styles.title}>{t('expectedToday')}</Text>
+                            <View style={{ width: 40 }} />
+                        </View>
+                        <Text style={styles.subtitle}>{t('expectedVisitorsCount').replace('{count}', expectedVisitors.length.toString())}</Text>
+                    </>
+                }
+                ListEmptyComponent={
+                    loading ? (
+                        <Text style={styles.emptyText}>{t('loading')}</Text>
                     ) : (
                         <BlurView intensity={40} tint="dark" style={styles.emptyState}>
                             <Ionicons name="calendar-outline" size={64} color="#64748b" />
                             <Text style={styles.emptyTitle}>{t('noVisitorsExpected')}</Text>
                             <Text style={styles.emptyText}>{t('noVisitorsScheduled')}</Text>
                         </BlurView>
-                    )}
-                </View>
-            </ScrollView>
+                    )
+                }
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                renderItem={({ item: visitor }) => (
+                    <Pressable
+                        onPress={() => {
+                            setSelectedVisit(visitor);
+                            setModalVisible(true);
+                        }}
+                    >
+                        <BlurView intensity={30} tint="dark" style={styles.visitorCard}>
+                            <View style={styles.cardHeader}>
+                                <View style={styles.statusBadge}>
+                                    <Ionicons name="time-outline" size={16} color="#f59e0b" />
+                                    <Text style={styles.statusText}>{t('statusPending')}</Text>
+                                </View>
+                                <Text style={styles.timeText}>
+                                    {new Date(visitor.validFrom).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                            </View>
+                            <Text style={styles.visitorName}>{visitor.visitorName}</Text>
+                            <View style={styles.detailsRow}>
+                                <View style={styles.detail}>
+                                    <Ionicons name="card-outline" size={16} color="#94a3b8" />
+                                    <Text style={styles.detailText}>{visitor.visitorIdNumber}</Text>
+                                </View>
+                                {visitor.licensePlate && (
+                                    <View style={styles.detail}>
+                                        <Ionicons name="car-outline" size={16} color="#94a3b8" />
+                                        <Text style={styles.detailText}>{visitor.licensePlate}</Text>
+                                    </View>
+                                )}
+                            </View>
+                            <View style={styles.hostInfo}>
+                                <Ionicons name="person-circle-outline" size={20} color="#64748b" />
+                                <Text style={styles.hostText}>{t('hostLabel')} {visitor.host?.name || t('unknown')}</Text>
+                            </View>
+                        </BlurView>
+                    </Pressable>
+                )}
+            />
 
             <VisitDetailModal
                 visible={modalVisible}

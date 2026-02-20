@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { API_URL } from '@/constants/api';
 
@@ -72,54 +72,59 @@ export default function CheckoutScreen() {
 
     return (
         <LinearGradient colors={['#0f172a', '#1e293b', '#334155']} style={styles.container}>
-            <ScrollView contentContainerStyle={styles.content}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <Pressable onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#ffffff" />
-                    </Pressable>
-                    <Text style={styles.title}>{t('checkout')}</Text>
-                    <View style={{ width: 40 }} />
-                </View>
-
-                <Text style={styles.subtitle}>{t('activeVisitorsCount').replace('{count}', visitors.length.toString())}</Text>
-
-                {/* Visitors List */}
-                <View style={styles.list}>
-                    {loading ? (
+            <FlatList
+                contentContainerStyle={styles.content}
+                data={visitors}
+                keyExtractor={(item: any) => item.id}
+                showsVerticalScrollIndicator={false}
+                ListHeaderComponent={
+                    <>
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <Pressable onPress={() => router.back()} style={styles.backButton}>
+                                <Ionicons name="arrow-back" size={24} color="#ffffff" />
+                            </Pressable>
+                            <Text style={styles.title}>{t('checkout')}</Text>
+                            <View style={{ width: 40 }} />
+                        </View>
+                        <Text style={styles.subtitle}>{t('activeVisitorsCount').replace('{count}', visitors.length.toString())}</Text>
+                    </>
+                }
+                ListEmptyComponent={
+                    loading ? (
                         <Text style={styles.emptyText}>{t('loading')}</Text>
-                    ) : visitors.length > 0 ? (
-                        visitors.map((visitor: any) => (
-                            <BlurView key={visitor.id} intensity={30} tint="dark" style={styles.visitorCard}>
-                                <View style={styles.visitorInfo}>
-                                    <View style={styles.statusIcon}>
-                                        <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.visitorName}>{visitor.visitorName}</Text>
-                                        <Text style={styles.visitorMeta}>
-                                            {visitor.licensePlate || t('noVehicle')} • {t('enteredAt').replace('{time}', new Date(visitor.checkedInAt || visitor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}
-                                        </Text>
-                                    </View>
-                                </View>
-                                <Pressable
-                                    onPress={() => handleCheckout(visitor.id, visitor.visitorName)}
-                                    style={styles.checkoutButton}
-                                >
-                                    <Ionicons name="exit-outline" size={20} color="#f59e0b" />
-                                    <Text style={styles.checkoutText}>{t('checkout')}</Text>
-                                </Pressable>
-                            </BlurView>
-                        ))
                     ) : (
                         <BlurView intensity={40} tint="dark" style={styles.emptyState}>
                             <Ionicons name="people-outline" size={64} color="#64748b" />
                             <Text style={styles.emptyTitle}>{t('noActiveVisitors')}</Text>
                             <Text style={styles.emptyText}>{t('allCheckedOut')}</Text>
                         </BlurView>
-                    )}
-                </View>
-            </ScrollView>
+                    )
+                }
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                renderItem={({ item: visitor }) => (
+                    <BlurView intensity={30} tint="dark" style={styles.visitorCard}>
+                        <View style={styles.visitorInfo}>
+                            <View style={styles.statusIcon}>
+                                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.visitorName}>{visitor.visitorName}</Text>
+                                <Text style={styles.visitorMeta}>
+                                    {visitor.licensePlate || t('noVehicle')} • {t('enteredAt').replace('{time}', new Date(visitor.checkedInAt || visitor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}
+                                </Text>
+                            </View>
+                        </View>
+                        <Pressable
+                            onPress={() => handleCheckout(visitor.id, visitor.visitorName)}
+                            style={styles.checkoutButton}
+                        >
+                            <Ionicons name="exit-outline" size={20} color="#f59e0b" />
+                            <Text style={styles.checkoutText}>{t('checkout')}</Text>
+                        </Pressable>
+                    </BlurView>
+                )}
+            />
         </LinearGradient>
     );
 }
